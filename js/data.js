@@ -1,0 +1,155 @@
+const QUESTIONS = [
+  {
+    id: 0,
+    text: "Who will end the World?",
+    background: "#ffebec",
+    noCarousel: true,
+    dndKey: "q1",
+    introHeading: "The one to",
+    introBig: "BLAME",
+    answers: [
+      { text: "Humans",  icon: "humansicon.svg", asset: "humans.svg",        result: "energetic",  quizResult: "knowitall"  },
+      { text: "AI",      icon: "AI.svg",         asset: "ai-screen.svg",     result: "reflective", quizResult: "knowitall"  },
+      { text: "Cosmic",  icon: "cosmic.svg",     asset: "cosmic-screen.svg", result: "adaptive",   quizResult: "clueless"   },
+      { text: "God",     icon: "god.svg",        asset: "god-screen.svg",    result: "dreamy",     quizResult: "nonchalant" },
+    ]
+  },
+  {
+    id: 1,
+    text: "When will the world end?",
+    background: "#fed5d6",
+    noCarousel: true,
+    scrubKey: "q2",
+    introHeading: "time heals,<br>but also",
+    introBig: "DESTROYS",
+    answers: [
+      { text: "In 5 years",               result: "urgent",    quizResult: "runaway"    },
+      { text: "In 20 years",              result: "aware",     quizResult: "knowitall"  },
+      { text: "In 60 years",              result: "patient",   quizResult: "nonchalant" },
+      { text: "When I'm too old to care", result: "optimistic",quizResult: "clueless"   },
+    ]
+  },
+  {
+    id: 2,
+    text: "What is your reaction to the end of the world?",
+    background: "#fef7b3",
+    noCarousel: true,
+    dndKey: "q3dnd",
+    introHeading: "Flood of",
+    introBig: "EMOTION",
+    answers: [
+      { text: "Stress", result: "stressed", quizResult: "clueless"   },
+      { text: "Fear",   result: "fearful",  quizResult: "runaway"    },
+      { text: "Denial", result: "denial",   quizResult: "nonchalant" },
+      { text: "Relief", result: "relieved", quizResult: "knowitall"  },
+      { text: "Shock",  result: "shocked",  quizResult: "clueless"   },
+    ]
+  },
+  {
+    id: 3,
+    text: "Who will break the News to you?",
+    background: "#ffebec",
+    noCarousel: true,
+    dndKey: "q4",
+    introHeading: "Don't be<br>mad at the",
+    introBig: "MESSENGER",
+    answers: [
+      { text: "The Pope",              icon: "popeicon.svg", asset: "pope.svg",       result: "spiritual", quizResult: "clueless"   },
+      { text: "Tech Billionaire",      icon: "billicon.svg", asset: "bill.svg",       result: "rational",  quizResult: "runaway"    },
+      { text: "conspiracy theorist",   icon: "conicon.svg",  asset: "conspiracy.svg", result: "skeptical", quizResult: "knowitall"  },
+      { text: "News network",          icon: "newsicon.svg", asset: "news.svg",       result: "informed",  quizResult: "nonchalant" },
+    ]
+  },
+  {
+    id: 4,
+    text: "How will you spend your final day?",
+    background: "#fef7b3",
+    noCarousel: true,
+    dndKey: "q5dnd",
+    introHeading: "Say<br>your final",
+    introBig: "GOODBYES",
+    answers: [
+      { text: "Doomscrolling",            result: "energetic",  quizResult: "clueless"   },
+      { text: "with Nature",              result: "dreamy",     quizResult: "runaway"    },
+      { text: "with loved ones",          result: "reflective", quizResult: "nonchalant" },
+      { text: "doing something Reckless", result: "adaptive",   quizResult: "runaway"    },
+      { text: "preparing for the show",   result: "bold",       quizResult: "knowitall"  },
+    ]
+  },
+  {
+    id: 5,
+    text: "Do you think the world will be a simulation?",
+    background: "#fed5d6",
+    noCarousel: true,
+    scrubKey: "q6",
+    introHeading: "",
+    introBig: "WAS IT REAL<br>ANYWAY?",
+    answers: [
+      { text: "no",         result: "grounded",  quizResult: "nonchalant" },
+      { text: "no opinion", result: "skeptical", quizResult: "clueless"   },
+      { text: "yes",        result: "curious",   quizResult: "runaway"    },
+      { text: "definitely", result: "visionary", quizResult: "knowitall"  },
+    ]
+  },
+];
+
+const QUIZ_RESULTS = {
+  nonchalant: {
+    title: 'The Nonchalant',
+    char: 'nonchalant.svg',
+    art:  'non.art.svg',
+    desc: 'You are completely chill about everything, mostly because you refuse to leave your comfort zone. As long as you have your favorite blanket, some snacks, and your couch, you literally do not care what is happening in the outside world. When the apocalypse hits, you will be happy to have an excuse to cancel plans',
+  },
+  clueless: {
+    title: 'The Clueless',
+    char: 'clueless.svg',
+    art:  'cluelessart.svg',
+    desc: 'You are always the absolute last person in the friend group to get the joke. You discover breaking news after it\'s already old news. You maintain your inner peace more than anyone else. You didn\'t realize the world is ending because you thought it was a big Joke, you\'ll believe it when nobody shows up at work',
+  },
+  knowitall: {
+    title: 'The Know-It-All',
+    char: 'knowitall.svg',
+    art:  'knowart.svg',
+    desc: 'You\'re somehow always two steps ahead of everyone else, you come prepared for everything. You love being on top of your game and knowing exactly how things work. If the world ends you\'ll be annoyed that nobody listened to you sooner, the bright side is you get to say "I told you so"',
+  },
+  runaway: {
+    title: 'The Runaway',
+    char: 'Runaway.svg',
+    art:  'runart.svg',
+    desc: 'You have an incredible talent for removing yourself from situations the second they become inconvenient. You prefer every conversation to be through text, preferably an Email. You treat avoidance like a coping Mechanism, which is why if the world is ending you will get in a car and drive as far away as you can.',
+  },
+};
+
+const RESULTS_MAP = {
+  energetic:     { label: "The Initiator",   description: "You move first and think fast. Energy is your currency." },
+  reflective:    { label: "The Observer",    description: "You see what others miss because you take the time to look." },
+  adaptive:      { label: "The Shapeshifter",description: "Context is everything to you. You read rooms and adjust." },
+  dreamy:        { label: "The Visionary",   description: "Your imagination is your greatest asset. You live in possibility." },
+  analytical:    { label: "The Architect",   description: "You build from the ground up — methodically and with intention." },
+  intuitive:     { label: "The Sensor",      description: "You trust what you feel before you can explain it." },
+  collaborative: { label: "The Connector",   description: "You think better together. Community is your engine." },
+  patient:       { label: "The Waiter",      description: "You know that the right moment is worth waiting for." },
+  bold:          { label: "The Pioneer",     description: "You'd rather ask forgiveness than permission." },
+  spontaneous:   { label: "The Improviser",  description: "Structure is a suggestion. You thrive in the unplanned." },
+  calm:          { label: "The Anchor",      description: "You bring stillness to chaos. People feel safe around you." },
+  social:        { label: "The Gatherer",    description: "You make things better just by showing up." },
+  focused:       { label: "The Maker",       description: "You lose yourself in the work — and that's where the magic is." },
+  composed:      { label: "The Rock",        description: "Under pressure, you get clearer. Others lean on that." },
+  emotional:     { label: "The Empath",      description: "Feeling things fully is not a weakness — it's data." },
+  flexible:      { label: "The Navigator",   description: "You find routes others don't see because you aren't attached to the first one." },
+  resilient:     { label: "The Endurer",     description: "You keep going. That alone sets you apart." },
+  strategic:     { label: "The Planner",     description: "Zoom out, assess, then act. That's your superpower." },
+  solitary:      { label: "The Deep Thinker",description: "Silence is where you do your best work." },
+  kinetic:       { label: "The Mover",       description: "Your body and mind work together. Movement unlocks thought." },
+  dialogic:      { label: "The Conversationalist", description: "Ideas come alive when they're spoken out loud." },
+  ambient:       { label: "The Absorber",    description: "You draw energy from the world around you." },
+  structured:    { label: "The Optimizer",   description: "Systems free you. You know that discipline is a form of freedom." },
+  balanced:      { label: "The Moderate",    description: "You know when to hold the line and when to let go." },
+  varied:        { label: "The Explorer",    description: "Novelty is oxygen to you. Boredom is the real threat." },
+  relational:    { label: "The Devoted",     description: "Your commitments define you. People know they can count on you." },
+  achievement:   { label: "The Builder",     description: "Progress is the point. You measure days in milestones." },
+  connection:    { label: "The Heart",       description: "What you remember most is how things felt — and who was there." },
+  discovery:     { label: "The Seeker",      description: "Growth is the goal. You're always becoming." },
+  presence:      { label: "The Mindful",     description: "You've learned that being here, fully, is enough." },
+  courage:       { label: "The Risk-Taker",  description: "You know that the leap is the thing." },
+};

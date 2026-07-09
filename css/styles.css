@@ -1,0 +1,3616 @@
+/* ===================== CUSTOM FONT ===================== */
+@font-face {
+  font-family: 'PPNeueMontreal';
+  src: url('../PPNeueMontreal-Regular copy.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'PPNeueMontreal';
+  src: url('../PPNeueMontreal-Semibold copy.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'PPNeueCorp';
+  src: url('../PPNeueCorp-WideMedium copy.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'PPNeueCorp';
+  src: url('../PPNeueCorp-ExtendedUltralight copy.otf') format('opentype');
+  font-weight: 100;
+  font-style: normal;
+}
+
+/* ===================== VARIABLES ===================== */
+:root {
+  /* Q3 multi-select tuning */
+  --next-height:        140px;  /* fixed height of the Next button */
+  --q3-chip-gap:        24px;  /* space between word chips */
+  --q3-bubble-grow:     2;     /* vertical stretch of bubble 3 (higher = taller) */
+  --bg:               #FFFCE2;
+  --text-primary:     #550017;
+  --text-secondary:   rgba(85,0,23,0.5);
+  --dot-inactive:     rgba(103,58,176,0.3);
+  --dot-active:       #673ab0;
+  --btn-bg:           #550017;
+  --btn-text:         #FFFCE2;
+  --border:           rgba(85,0,23,0.12);
+
+  --pv:               3vh;
+  --ph:               2vw;
+  --gap:              1vw;
+  --transition:       0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ===================== RESET ===================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+}
+
+/* ===================== SCREENS ===================== */
+.screen {
+  position: fixed;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition);
+}
+
+.screen.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.screen:not(.active) * {
+  pointer-events: none !important;
+}
+
+/* ===================== PRE-QUESTION SCREEN ===================== */
+#screen-prequestion {
+  background: #5e0015;
+  cursor: pointer;
+}
+
+.prequestion-content {
+  position: absolute;
+  top: var(--pv);
+  left: var(--ph);
+}
+
+.prequestion-art {
+  display: block;
+  width: calc(9*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 8*var(--gap));
+  height: auto;
+}
+
+.prequestion-hint {
+  margin-top: 25px;
+  font-size: 26.5px;
+  line-height: 33px;
+  color: #fe80fe;
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  font-weight: 400;
+}
+
+#screen-prequestion .progress-tracker {
+  grid-column: 1 / 4;
+  grid-row: 3;
+  align-self: center;
+  justify-self: start;
+}
+
+#screen-prequestion .progress-dot {
+  background: rgba(254, 213, 214, 0.35);
+}
+
+#screen-prequestion .progress-dot.current,
+#screen-prequestion .progress-dot.answered {
+  background: #fed5d6;
+}
+
+/* ===================== START SCREEN ===================== */
+#screen-start {
+  background: #6d1631;
+}
+
+.start-hero {
+  position: absolute;
+  top: var(--pv);
+  left: var(--ph);
+  width: calc((10*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 9*var(--gap)) * 0.95);
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.start-title-svg {
+  width: 100%;
+  height: auto;
+}
+
+.start-tagline {
+  margin-top: 10px;
+  font-size: 26.5px;
+  line-height: 1.27;
+  color: #fe80fe;
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  font-weight: 400;
+  max-width: calc(3*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 2*var(--gap));
+}
+
+.start-sub {
+  margin-top: 25px;
+  font-size: 26.5px;
+  line-height: 1.27;
+  color: #fe80fe;
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  font-weight: 400;
+  max-width: calc(2*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 1*var(--gap));
+}
+
+.btn-start {
+  grid-column: 12;
+  grid-row: 3;
+  align-self: end;
+  justify-self: end;
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  background: #fed5d6;
+  color: #6d1631;
+  font-family: 'PPNeueCorp', system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 20px;
+  padding: 15px 32px;
+  border-radius: 100px;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+}
+
+.btn-start:hover { opacity: 0.8; }
+
+.start-eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+.start-title {
+  font-size: clamp(40px, 4.5vw, 60px);
+  font-weight: 300;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 28px;
+}
+
+.start-description {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin-bottom: 48px;
+}
+
+/* ===================== ABOUT ===================== */
+.about-container {
+  position: absolute;
+  top: calc(var(--pv) * 7);
+  left: calc(100vw - var(--ph) - 430px);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  pointer-events: none;
+}
+
+.about-img,
+.about-hover-img,
+.about-textbox {
+  pointer-events: auto;
+}
+
+.about-img,
+.about-hover-img {
+  width: 145px;
+  height: auto;
+  display: block;
+  cursor: pointer;
+}
+
+.about-hover-img {
+  display: none;
+}
+
+.about-container.about-open .about-img {
+  display: none;
+}
+
+.about-container.about-open .about-hover-img {
+  display: block;
+}
+
+.about-textbox {
+  display: none;
+  width: 430px;
+  height: auto;
+  margin-top: 20px;
+}
+
+.about-container.about-open .about-textbox {
+  display: block;
+}
+
+.about-text {
+  display: none;
+  position: absolute;
+  top: calc(145px + 20px);
+  left: 0;
+  width: 430px;
+  padding: 36.5px;
+  box-sizing: border-box;
+  margin: 0;
+  font-size: 26.5px;
+  color: #fe80fe;
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  line-height: 1.27;
+  pointer-events: none;
+}
+
+.about-container.about-open .about-text {
+  display: block;
+}
+
+/* ===================== GLOBE ===================== */
+.globe-container {
+  position: absolute;
+  bottom: 4vh;
+  left: calc(var(--ph) + 4.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 7*var(--gap));
+  width: calc((4.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 3.5*var(--gap)) * 1.6);
+  height: calc((4.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 3.5*var(--gap)) * 1.6);
+  z-index: 100;
+  pointer-events: none;
+}
+
+.globe-base,
+.globe-hover {
+  pointer-events: none;
+}
+
+.globe-hitarea {
+  position: absolute;
+  left: 1%;
+  top: 39.5%;
+  width: 60.4%;
+  height: 60.5%;
+  border-radius: 50%;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.globe-base {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.globe-hover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: none;
+  pointer-events: none;
+}
+
+.globe-hover-4 {
+  width: 30%;
+  height: 269%;
+  top: -92%;
+  left: 16%;
+}
+
+/* ===================== PRIMARY BUTTON ===================== */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  font-family: 'PPNeueCorp', system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  padding: 18px 40px;
+  border-radius: 100px;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.btn-primary:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+/* ===================== QUESTION SCREEN — ILLUSTRATION ===================== */
+.illustration-area {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  z-index: 1;
+}
+
+.illustration-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: top center;
+  padding: 0;
+  transition: opacity 0.15s ease;
+}
+
+.illustration-img.fade-out {
+  opacity: 0;
+}
+
+.illustration-img.full-bleed {
+  padding: 0;
+  object-fit: cover;
+}
+
+.illustration-img.loved-img {
+  padding: 0;
+  object-fit: cover;
+  clip-path: inset(calc(var(--pv) * 2 + 1.4em) 8vh calc(var(--pv) * 2 + 2.6em) var(--ph));
+}
+
+.illustration-img.nature-img {
+  padding: 0;
+  object-fit: contain;
+  object-position: center center;
+  clip-path: inset(calc(var(--pv) * 2 + 1.4em) 8vh calc(var(--pv) * 2 + 2.6em) var(--ph));
+}
+
+.illustration-img.reckless-img {
+  padding: calc(var(--pv) * 2 + 1.4em) 8vh calc(var(--pv) * 2 + 2.6em) var(--ph);
+  object-fit: cover;
+  object-position: center center;
+  clip-path: inset(calc(var(--pv) * 2 + 1.4em) 8vh calc(var(--pv) * 2 + 2.6em) var(--ph));
+}
+
+.illustration-img.doom-img {
+  padding: calc(var(--pv) * 2 + 1.4em) calc(8vh + 260px) calc(var(--pv) * 2 + 2.6em) var(--ph);
+  object-fit: contain;
+  object-position: bottom center;
+}
+
+/* Q1 per-icon illustration overrides */
+.q1-img {
+  padding-top:    calc(var(--pv) + 0.5em + 6vh);
+  padding-bottom: calc(var(--pv) * 2 + 2.6em - 6vh);
+}
+
+.q1-img-humans {
+  padding-top:   calc(var(--pv) + 0.5em + 8vh);
+  padding-left:  calc(var(--ph) + 1vw);
+  padding-right: calc(8vh + 200px + 3vw);
+}
+
+.q1-img-ai {
+  padding-top: 0vh;
+  padding-right: calc(90vw / 12 + 2vw);
+  object-position: center top;
+  transform: scale(1.05);
+  transform-origin: top center;
+}
+
+.q1-img-cosmic {
+  padding-right: calc(100vw / 12 + 2vw);
+  object-position: center top;
+}
+
+.q1-img-god {
+  padding: 0;
+  object-fit: contain;
+  object-position: center center;
+}
+
+/* ===================== BACKGROUND PANEL ===================== */
+.bg-panel {
+  position: absolute;
+  top: calc(var(--pv) * 2 + 1.4em);
+  bottom: calc(var(--pv) * 2 + 2.6em);
+  left: var(--ph);
+  right: 8vh;
+  z-index: 0;
+  background: #FEF7B3;
+  border-radius: 0;
+  clip-path: url(#panel-clip);
+  box-shadow: inset 0 0 40px rgba(255, 47, 47, 0.25), inset -40px 0 40px rgba(255, 47, 47, 0.25);
+  pointer-events: none;
+}
+
+/* ===================== QUESTION INTRO ===================== */
+.question-intro {
+  position: absolute;
+  top: calc(var(--pv) * 2 + 1.4em);
+  bottom: calc(var(--pv) * 2 + 2.6em);
+  left: 0;
+  right: 0;
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.question-intro.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.intro-active .question-text,
+.intro-active .btn-next {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.intro-text {
+  font-size: clamp(44px, 5.5vw, 80px);
+  font-weight: 300;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  text-align: center;
+  max-width: 65%;
+}
+
+/* ===================== UI GRID ===================== */
+.ui-grid {
+  position: absolute;
+  inset: 0;
+  padding: var(--pv) var(--ph);
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: auto 1fr auto;
+  column-gap: 1vw;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* ---- top row ---- */
+.logo-btn {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+  justify-self: start;
+  pointer-events: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.logo-img {
+  height: 48px;
+  width: auto;
+  display: block;
+  filter: none;
+}
+
+.question-text {
+  grid-column: 3 / 11;
+  grid-row: 1;
+  align-self: center;
+  justify-self: center;
+  text-align: center;
+  pointer-events: auto;
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  font-weight: 400;
+  font-size: clamp(28px, 3.5vw, 52px);
+  color: var(--text-primary);
+  transition: color 0.35s ease, transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: normal;
+}
+
+/* ---- bottom row ---- */
+.btn-home {
+  grid-column: 1 / 3;
+  grid-row: 3;
+  align-self: end;
+  justify-self: start;
+  pointer-events: auto;
+}
+
+/* ===================== PROGRESS TRACKER ===================== */
+.progress-tracker {
+  position: absolute;
+  top: var(--pv);
+  right: var(--ph);
+  pointer-events: none;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  z-index: 20;
+}
+
+.progress-dot {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--dot-inactive);
+  transition: background 0.35s ease, width 0.3s ease, height 0.3s ease, opacity 0.3s ease, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: none;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+
+.progress-dot.answered {
+  background: var(--dot-active);
+}
+
+.progress-dot.current {
+  background: var(--dot-active);
+  width: 14px;
+  height: 14px;
+}
+
+
+/* Dot answered with icon — slightly bigger than current */
+.progress-dot.dz-answered {
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 50% !important;
+  background: #673ab0 !important;
+  opacity: 1 !important;
+  padding: 3px;
+}
+
+.progress-dot.dz-answered img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+/* Floating drop zone that appears below hovered icon */
+.q1-dz-floating {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: auto;
+  z-index: 100;
+  display: none;
+  overflow: hidden;
+  transition: opacity 0.2s ease;
+}
+
+.q1-dz-drop-anim {
+  animation: q1-dz-drop-shake 0.8s ease-in-out forwards;
+}
+
+@keyframes q1-dz-drop-shake {
+  0%   { transform: translate(-50%, -50%) scale(1); }
+  15%  { transform: translate(-53%, -52%) scale(1.10); }
+  30%  { transform: translate(-47%, -48%) scale(1.15); }
+  45%  { transform: translate(-51%, -52%) scale(1.09); }
+  60%  { transform: translate(-49%, -48%) scale(1.13); }
+  75%  { transform: translate(-51%, -50%) scale(1.07); }
+  90%  { transform: translate(-50%, -50%) scale(1.12); }
+  100% { transform: translate(-50%, -50%) scale(1.12); }
+}
+
+/* Spinning text ring inside drop zone */
+.q1-dzf-spin-g {
+  transform-box: view-box;
+  transform-origin: 80px 80px;
+  animation: q1-dz-spin 10s linear infinite;
+}
+
+@keyframes q1-dz-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.q1-dz-text {
+  font-family: 'PPNeueCorp', system-ui, sans-serif;
+  font-size: 20px;
+  fill: rgba(255, 255, 255, 0.75);
+  letter-spacing: 2px;
+}
+
+/* ===================== HOME BUTTON ===================== */
+.btn-home {
+  display: inline-flex;
+  align-items: center;
+  font-family: 'PPNeueCorp', system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+  border: 1.5px solid var(--text-primary);
+  border-radius: 100px;
+  padding: 15px 32px;
+  transition: opacity 0.2s;
+}
+
+.btn-home:hover { opacity: 0.6; }
+
+/* ===================== CAROUSEL ===================== */
+.carousel-wrapper {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%) translateX(0);
+  z-index: 10;
+  width: 440px;
+  height: 600px;
+  overflow: visible;
+  cursor: grab;
+  user-select: none;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.carousel-wrapper:active { cursor: grabbing; }
+
+.carousel-wrapper.slide-right {
+  transform: translateY(-50%) translateX(500px);
+}
+
+
+/* Fixed highlight pill — always centered, never moves */
+.carousel-highlight {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  right: 14px;
+  z-index: 2;
+  background: #FEF7B3;
+  border-radius: 100px;
+  padding: 12px 60px 12px 22px; /* right padding covers the larger dot */
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.carousel-highlight-text {
+  font-size: clamp(13px, 1.1vw, 15px);
+  font-weight: 600;
+  color: #550017;
+  letter-spacing: -0.01em;
+}
+
+/* Dot column — sits above the highlight */
+.carousel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 20px;
+  width: 56px;
+  overflow: visible;
+  z-index: 3;
+}
+
+/* Scrolling track — anchored at vertical center, items position themselves */
+.carousel-track {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+}
+
+/* Each item absolutely positioned, JS applies translate per index */
+.carousel-item {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 80px;
+  margin-top: -40px; /* centers item on the track midpoint */
+  cursor: pointer;
+}
+
+.carousel-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #FEF7B3;
+  border: 3px solid #550017;
+  box-sizing: border-box;
+  transition: transform 0.35s ease;
+  flex-shrink: 0;
+}
+
+.carousel-item.active .carousel-dot {
+  transform: scale(1.2);
+}
+
+/* ===================== BOTTOM BAR ===================== */
+
+.btn-prev {
+  grid-column: 1 / 4;
+  grid-row: 3;
+  align-self: end;
+  justify-self: start;
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  font-family: 'PPNeueCorp', system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  color: #fed5d6;
+  border: 1.5px solid #6d1631;
+  background: #6d1631;
+  border-radius: 100px;
+  padding: 15px 32px;
+  transition: opacity 0.2s;
+  visibility: hidden;
+  box-shadow: none;
+}
+
+.btn-prev:hover { opacity: 0.6; }
+
+.btn-next {
+  grid-column: 12;
+  grid-row: 3;
+  align-self: end;
+  justify-self: end;
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  background: #6d1631;
+  color: #fed5d6;
+  font-family: 'PPNeueCorp', system-ui, sans-serif;
+  font-size: clamp(20px, 1.8vw, 28px);
+  font-weight: 500;
+  padding: 15px 32px;
+  border-radius: 100px;
+  border: 1.5px solid transparent;
+  transition: opacity 0.2s;
+  box-shadow: none;
+  white-space: nowrap;
+}
+
+.btn-next:hover { opacity: 0.7; }
+
+/* ===================== PRE-COMIC ("LOADING") SCREEN ===================== */
+/* A short stepped text sequence (see app.js _runPreComicSequence) — each step
+   is centered/overlapping via position:absolute so there's no layout jump
+   between them, faded via opacity only. Whole screen is clickable to skip. */
+#screen-loading {
+  background: #6d1631;
+  cursor: default;
+}
+
+.loading-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.pre-comic-line {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: max-content;
+  max-width: 80vw;
+  margin: 0;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+.pre-comic-line.visible { opacity: 1; }
+
+.pre-comic-intro {
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  font-size: clamp(16px, 1.8vw, 24px);
+  color: #fed5d6;
+  letter-spacing: 0.05em;
+}
+
+/* Step B: someday text block, centered, two stacked lines */
+.pre-comic-reveal-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35em;
+  width: min(55vw, 700px); /* override .pre-comic-line width: max-content so text wraps */
+  max-width: 90vw;
+  text-align: center;
+}
+
+.pre-comic-q2 {
+  font-family: 'PPNeueCorp', sans-serif;
+  font-weight: 500;
+  font-size: clamp(36px, 5.5vw, 72px);
+  color: #fe80fe;
+  line-height: 1.1;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.pre-comic-q2.visible { opacity: 1; }
+
+.pre-comic-q4 {
+  font-family: 'PPNeueCorp', sans-serif;
+  font-weight: 500;
+  font-size: clamp(36px, 5.5vw, 72px);
+  color: #fe80fe;
+  line-height: 1.1;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.pre-comic-q4.visible { opacity: 1; }
+
+/* "click to continue" hint — fixed to bottom center */
+.pre-comic-click-hint {
+  position: absolute;
+  bottom: clamp(24px, 4vh, 48px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  font-size: clamp(13px, 1.2vw, 17px);
+  color: #fed5d6;
+  letter-spacing: 0.08em;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+  white-space: nowrap;
+}
+.pre-comic-click-hint.visible { opacity: 1; }
+
+/* ===================== COMIC PROGRESS SIDEBAR ===================== */
+/* Replaces the real #answer-sidebar once questions are done — see
+   app.js _showComicProgressSidebar. Same spot/width as the real sidebar's
+   compressed (28px) state, one long pill instead of numbered bubbles. */
+#comic-progress-sidebar {
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 28px;
+  height: 100vh;
+  z-index: 1000;
+  display: none;
+  pointer-events: none;
+}
+#comic-progress-sidebar.visible { display: block; }
+
+.comic-progress-pill {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 1.5px solid #5e0015;
+  box-sizing: border-box;
+}
+
+/* Static placeholder position for now — wiring this to the comic's actual
+   scroll stage (this.stage / STAGE_COUNT) is a separate follow-up. */
+.comic-progress-dot {
+  position: absolute;
+  left: 50%;
+  top: 12%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #5e0015;
+}
+
+/* ===================== COMIC REVEAL ===================== */
+/* Same 12-column system as every other page (--ph page margin, --gap between
+   columns), expressed via calc() and position:absolute rather than literal
+   grid-column/grid-row — CSS Grid's stretch sizing turned out unreliable for
+   the <img> panels here. --col/--row = one column/row's size; formula for the
+   left/top edge of line N is: var(--ph|--pv) + (N-1) * (col-or-row [+ gap]).
+   All positions are still first-pass — give column/row numbers to adjust. */
+#screen-comic-reveal {
+  background: #6d1631;
+  overflow: hidden;
+  /* Fixed px, not vw/vh like the sitewide --gap/--pv — this locks the actual
+     gap distances between panels regardless of screen size (both horizontal
+     and vertical); --col/--row below absorb the difference (grow/shrink)
+     instead of the gaps themselves changing. */
+  --comic-gap: 19px;
+  --comic-pv: 24px;
+  /* 100vw/100vh, not bare "100%" — #screen-comic-reveal is always exactly
+     viewport-sized (position: fixed, inset: 0), but a custom property's "%"
+     re-resolves per the axis of whatever property it ends up substituted
+     into: var(--col) used inside a `top`/height calc (e.g. the Q1_TOP_OFFSET
+     nudge below, JS-set per answer) would silently resolve its embedded "%"
+     against container HEIGHT instead of width, corrupting a width-based
+     column unit into a height-based one. That only matched at the one
+     screen size this was last tuned against; vw/vh are axis-fixed regardless
+     of which property consumes them, so this can't happen. */
+  --col: calc((100vw - 2 * var(--ph) - 11 * var(--comic-gap)) / 12);
+  --row: calc((100vh - 2 * var(--comic-pv)) / 12); /* no row-gap defined on this grid */
+
+  /* Secondary grid: same left/right (--ph) and bottom (--comic-pv) margins as
+     the main grid above, but a bigger top margin — starts below the title/
+     caption instead of at the standard --comic-pv. Q1/Q4/Q5 are positioned
+     within this, not the main 12-row grid. --sg-row splits the space between
+     --sg-top and the bottom margin into its own 12 rows. */
+  --sg-top: calc(var(--comic-pv) + 1.2 * var(--row)); /* flexible — lower this further if panels still need to sit higher */
+  --sg-row: calc((100vh - var(--sg-top) - var(--comic-pv)) / 12);
+
+  /* Character geometry — hoisted here so .comic-footbox can reference them
+     without JS. Kept in sync with .comic-character below. */
+  --char-w:         calc(3.6 * (var(--col) + var(--comic-gap)));
+  --char-left-rest: calc(var(--ph) + 4.85 * (var(--col) + var(--comic-gap)));
+  /* character height = width × viewBox ratio (470.53 wide × 771.45 tall) */
+  --char-h:         calc(var(--char-w) * 771.45 / 470.53);
+}
+
+/* Wraps everything except the debug grid overlay — same full-screen box as
+   #screen-comic-reveal itself, so nothing inside needed its own calc() math
+   touched by this nesting. .zoomed scales the whole thing at once (a real
+   camera zoom), anchored near where the character's legs sit by default —
+   tune --scene-zoom-origin if that focal point needs to move. */
+.comic-scene {
+  position: absolute;
+  inset: 0;
+  --scene-zoom-origin: 57% 70%;
+  transform-origin: var(--scene-zoom-origin);
+  transform: scale(1);
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Explicit z-index so this stacking context always sits above the bg
+     overlay (z:0) and below the globe/result elements (z:15+). */
+  z-index: 1;
+}
+
+.comic-scene.zoomed {
+  transform: scale(1.12);
+}
+
+/* Visual/DevTools reference only — see the comment on this element in index.html */
+.comic-grid-ref {
+  position: absolute;
+  inset: 0;
+  padding: var(--comic-pv) var(--ph);
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: repeat(12, 1fr);
+  column-gap: var(--comic-gap);
+  pointer-events: none;
+}
+
+/* Full-width banner behind the title (and, briefly, comic-inbox-caption) —
+   sits at the standard top margin, tall enough for one line of text, and
+   stops well short of --sg-top so a visible gap remains before Q1/Q4/Q5.
+   Tweak --title-box-h below if that gap needs adjusting. */
+.comic-title-box {
+  --title-box-h: calc(1.1 * var(--row));
+
+  position: absolute;
+  left: var(--ph);
+  top: var(--comic-pv);
+  width: calc(100% - 2 * var(--ph));
+  height: var(--title-box-h);
+  background: #3d0115;
+  border: 2px solid #ff4fd8;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  padding: 0 clamp(16px, 2vw, 32px);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  z-index: 4; /* behind the text it holds (z-index 5), above the scene (2) */
+  pointer-events: none;
+}
+
+.comic-title-box.visible {
+  opacity: 1;
+}
+
+.comic-title {
+  margin: 0;
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  font-weight: 400;
+  font-size: clamp(34px, 4.2vw, 56px);
+  color: #fe80fe;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.5s ease, margin-left 0.5s ease, margin-right 0.5s ease;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.comic-title.visible {
+  opacity: 1;
+}
+
+/* Recenters the title within .comic-title-box once comic-inbox-caption has
+   left for good (see ComicRevealInteraction — stage >= 4). */
+.comic-title.centered {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.comic-inbox-caption {
+  margin: 0;
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  font-weight: 400;
+  font-size: clamp(34px, 4.2vw, 56px); /* matches .comic-title */
+  color: #fe80fe;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.comic-inbox-caption.visible {
+  opacity: 1;
+}
+
+/* Q4's speech bubble TEXT container — invisible itself (no background/
+   border/radius); it only exists to lay out and size the text via padding.
+   The actual visible bubble (oval + integrated tail, one continuous shape)
+   is the SVG path in .comic-bubble-shape below, sized to match this div's
+   real rendered box every render. z-index sits above both
+   .comic-character (10) and .comic-bubble-shapes (see below) so the text
+   always reads on top of its own bubble fill. */
+.comic-bubble {
+  position: absolute;
+  box-sizing: border-box;
+  padding: clamp(18px, 2.2vh, 28px) clamp(16px, 1.8vw, 24px);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  z-index: 12;
+  pointer-events: none;
+}
+
+.comic-bubble.visible {
+  opacity: 1;
+}
+
+.comic-bubble-text {
+  margin: 0;
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  font-weight: 400;
+  font-size: clamp(15px, 1.6vw, 22px);
+  color: var(--text-primary);
+  white-space: normal;
+  text-align: center;
+}
+
+/* Main character's speech bubble — same invisible container; positioned in
+   ComicRevealInteraction._layoutCharacterBubble beside his head. */
+
+/* The actual visible bubble shapes
+   outline with a small gap replaced by two straight lines tapering to a
+   point at the speaking character), recomputed every render/resize in
+   ComicRevealInteraction._updateBubbleShape from the text divs' and
+   characters' real getBoundingClientRect()s. No viewBox set deliberately:
+   with width/height = 100vw/100vh and no viewBox, this SVG's internal
+   coordinate system is 1 unit = 1 CSS px of the viewport, matching
+   getBoundingClientRect() directly with no conversion needed.
+   z-index sits between the scene content and .comic-character (10) on one
+   side and the bubble text (12) on the other, so the shape can overlap the
+   character (the tail often needs to) without ever covering its own text. */
+.comic-bubble-shapes {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 11;
+  pointer-events: none;
+}
+
+.comic-bubble-shape {
+  fill: #FFFCE2;
+  stroke: #ff4fd8;
+  stroke-width: 2px;
+  stroke-linejoin: round;
+}
+
+.comic-character {
+  /* --char-w and --char-left-rest are defined on #screen-comic-reveal so
+     .comic-footbox can also reference them; the values are the same. */
+
+  position: absolute;
+  top: 49%;
+  left: calc(50% - var(--char-w) / 2); /* starts centered on screen */
+  width: var(--char-w);
+  aspect-ratio: 470.53 / 771.45; /* matches comic.svg's viewBox */
+  /* Starts tiny and invisible (pre-scroll intro) — .grown fades it in and
+     scales it up to full size the moment the user's first scroll input
+     arrives (see stage -1 -> 0 in ComicRevealInteraction). Scale is bundled
+     into this same transform (rather than a separate property) so it
+     animates together with the existing translateY centering under one
+     transition. */
+  opacity: 0;
+  transform: translateY(-50%) scale(0.15);
+  transform-origin: 50% 78%;
+  transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.34, 1.2, 0.64, 1), opacity 0.5s ease;
+  z-index: 10; /* on top of the panels/text */
+  pointer-events: none;
+}
+
+.comic-character.grown {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+}
+
+/* Stage 1-2: nudges slightly left from center to make room for Q4 */
+.comic-character.nudged {
+  left: calc(50% - var(--char-w) / 2 - 1 * (var(--col) + var(--comic-gap)));
+}
+
+/* Stage >= 3: shifts right to its resting spot */
+.comic-character.placed {
+  left: var(--char-left-rest);
+}
+
+/* Scale used to happen here only — moved to .comic-scene.zoomed so the whole
+   composition zooms together (a real camera move), not just the character. */
+
+.comic-panel {
+  position: absolute;
+  opacity: 0;
+  transform: translateY(60px);
+  transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.comic-panel.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Ground panel behind his legs. z-index sits below .comic-character (10).
+   Fully CSS-positioned using the hoisted --char-* variables so it stays
+   perfectly in sync at any viewport size with no JS needed.
+   Derivation (all at the character's resting/placed position):
+     width  = 80% of character width
+     left   = character center − footbox center − the 0.25-col rightward
+               shift applied to the character (0.25/3.6 of --char-w)
+     top    = character visual bottom − footbox height
+            = (56vh + --char-h/2) − (footbox-width × 541.04/395.49)
+            = 56vh + --char-w × 0.8195 − --char-w × 0.8 × 1.3681
+            ≈ 56vh − --char-w × 0.2750   (simplified constant) */
+.comic-footbox {
+  z-index: 9;
+  aspect-ratio: 395.49 / 541.04;
+  width: calc(var(--char-w) * 0.8);
+  left:  calc(var(--char-left-rest) + var(--char-w) * 0.0306);
+  top:   calc(51vh - var(--char-w) * 0.275);
+}
+
+/* Dev preview: these three are clickable (cycles through that question's
+   answers) once visible — see ComicRevealInteraction._cyclePanel. */
+.comic-panel-q1.visible,
+.comic-panel-q4.visible,
+.comic-panel-q5.visible {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+/* Solid-color rectangle behind the Q4 illustration only (pope/news/con/bill) —
+   the source art wasn't exported with it, so it's recreated here. Q1 and Q5
+   don't get one — this is specific to Q4. left edge = Q1's right edge + one
+   fixed gap (var(--comic-gap)); top edge starts below the title/caption row (rows 1-3)
+   so it doesn't run under that text; bottom edge stays where it always was. */
+.comic-panel-box-q4 {
+  background: #fe80fe;
+  z-index: 1; /* behind the <img> art (z-index 2), so bleed renders on top of it */
+  left: calc(var(--ph) + 8 * (var(--col) + var(--comic-gap)) + var(--comic-gap));
+  width: calc(3.75 * (var(--col) + var(--comic-gap)));
+  top: var(--sg-top);
+  height: calc(12 * var(--sg-row)); /* full secondary-grid height, reaches the bottom margin */
+}
+
+/* Height isn't set — aspect-ratio (set per-image in JS, since Q1's 4 possible
+   files each have a different ratio) derives it from width instead. That
+   guarantees this always fills its full assigned width exactly, no letterboxing,
+   which is what keeps its right edge aligned with .comic-panel-q5's below it. */
+.comic-panel-q1 {
+  left: var(--ph);
+  top: var(--sg-top);
+  width: calc(8 * (var(--col) + var(--comic-gap)));  /* cols 1-9 */
+}
+
+.comic-panel-q4 {
+  left: calc(var(--ph) + 8 * (var(--col) + var(--comic-gap)) + var(--comic-gap) - 20px); /* nudged left of its box */
+  width: calc(3.75 * (var(--col) + var(--comic-gap)));
+  top: var(--sg-top);
+  height: calc(12 * var(--sg-row)); /* matches .comic-panel-box-q4 behind it */
+  object-fit: contain;
+  /* Smooth slide from centered (stage 1-2) to resting (stage 3+) */
+  transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              left 0.6s cubic-bezier(0.4, 0, 0.2, 1), width 0.6s ease;
+}
+
+/* Height isn't set — aspect-ratio (set per-image in JS, Q5's 5 possible files
+   each have a different ratio — this used to be hardcoded to naturecomic.svg's
+   ratio specifically, which was wrong for the other 4 answers) derives it from
+   width instead, matching Q1's technique so their widths — and right edges —
+   always align exactly. top is set dynamically in JS, pinned to Q1's actual
+   measured bottom edge + a fixed 5px, so the two never overlap/drift apart. */
+.comic-panel-q5 {
+  left: var(--ph);
+  top: var(--sg-top); /* fallback before JS sets the real value */
+  width: calc(8 * (var(--col) + var(--comic-gap)));  /* cols 1-9, full width, no cropping */
+}
+
+.comic-continue {
+  position: absolute;
+  left: calc(var(--ph) + 4 * (var(--col) + var(--comic-gap)));
+  top: calc(var(--comic-pv) + 11 * var(--row));
+  width: calc(4 * (var(--col) + var(--comic-gap)));
+  height: var(--row);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  font-size: 16px;
+  color: var(--text-secondary);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 6;
+}
+
+.comic-continue.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Idle nudge — same bottom-center spot as .comic-continue, but non-interactive
+   and can appear/disappear at any stage (not just the last one), whenever
+   ComicRevealInteraction's inactivity timer fires. See _armIdleTimer(). */
+.comic-idle-hint {
+  position: absolute;
+  left: calc(var(--ph) + 4 * (var(--col) + var(--comic-gap)));
+  top: calc(var(--comic-pv) + 11 * var(--row));
+  width: calc(4 * (var(--col) + var(--comic-gap)));
+  height: var(--row);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  font-size: 16px;
+  color: var(--text-secondary);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+  z-index: 6;
+}
+
+.comic-idle-hint.visible {
+  opacity: 1;
+}
+
+/* Pre-scroll intro — the only thing visible on this screen before the first
+   scroll input arrives. Sits above .comic-scene (which starts fully
+   transparent/unscaled via .comic-character's own initial state) so nothing
+   else is visible underneath until the user actually scrolls. */
+.comic-intro-hint {
+  display: none;
+}
+
+.comic-intro-hint.hidden {
+  display: none;
+}
+
+.comic-intro-text {
+  margin: 0;
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  font-weight: 400;
+  font-size: clamp(20px, 2.4vw, 30px);
+  color: var(--text-primary);
+  animation: comic-intro-pulse 2.4s ease-in-out infinite;
+}
+
+.comic-intro-arrow {
+  font-size: 28px;
+  line-height: 1;
+  color: var(--text-primary);
+  animation: comic-intro-pulse 2.4s ease-in-out infinite;
+  animation-delay: 0.2s;
+}
+
+@keyframes comic-intro-pulse {
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 1; }
+}
+
+#screen-results {
+  background: #fe80fe;
+}
+
+.results-top-left {
+  position: absolute;
+  top: var(--pv);
+  left: var(--ph);
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.results-char-img {
+  width: calc(10*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 9*var(--gap));
+  height: auto;
+  display: block;
+}
+
+.results-desc {
+  margin-top: 2.2vh;
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 26.5px;
+  line-height: 37px;
+  color: var(--text-primary);
+  max-width: calc(5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 4*var(--gap));
+}
+
+.results-desc p {
+  margin: 0;
+  padding: 0;
+}
+
+.results-art-img {
+  position: absolute;
+  bottom: calc(var(--pv) * 3);
+  right: calc(var(--ph) * 2);
+  width: calc((5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 4*var(--gap)) * 1.035);
+  height: auto;
+  z-index: 1;
+}
+
+.btn-results {
+  position: fixed;
+  bottom: var(--pv);
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  font-family: 'PPNeueCorp', system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  padding: 15px 32px;
+  border-radius: 100px;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+
+.btn-results.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.btn-try-again {
+  left: var(--ph);
+  background: #fed5d6;
+  color: #6d1631;
+  border: none;
+}
+
+.btn-share {
+  right: var(--ph);
+  background: transparent;
+  color: #6d1631;
+  border: 1.5px solid #6d1631;
+}
+
+.btn-results:hover { opacity: 0.75; }
+
+/* ===================== DEV BUTTON ===================== */
+#btn-dev-q2      { left: 10px;  }
+#btn-dev-q3      { left: 70px;  }
+#btn-dev-q4      { left: 130px; }
+#btn-dev-q5      { left: 190px; }
+#btn-dev-q6      { left: 250px; }
+#btn-dev-results  { left: 310px; }
+#btn-dev-comic    { left: 390px; }
+#btn-dev-comic-end { left: 480px; }
+
+.btn-dev-results {
+  position: fixed;
+  bottom: 16px;
+  z-index: 9999;
+  pointer-events: auto;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  font-size: 12px;
+  padding: 6px 16px;
+  border-radius: 100px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* ===================== Q1 LABEL OFFSET PANEL ===================== */
+.q1-label-panel {
+  display: none;
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  z-index: 9999;
+  background: rgba(0,0,0,0.75);
+  color: #fff;
+  font-family: 'PPNeueMontreal', sans-serif;
+  font-size: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 220px;
+}
+
+#screen-question.q1-active .q1-label-panel {
+  display: flex;
+}
+
+.q1-label-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.q1-label-row span {
+  width: 70px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.q1-label-row input[type=range] {
+  flex: 1;
+  accent-color: #fdf186;
+}
+
+.q1-label-val {
+  width: 32px;
+  text-align: right;
+  opacity: 0.9;
+}
+
+/* ===================== Q1 BACKGROUND LAYER ===================== */
+.q1-bg {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.q1-bg.visible {
+  opacity: 1;
+}
+
+.q1-bg-svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.q1-bg-blob-wrap {
+  position: absolute;
+  inset: 0;
+  background: #6d1631;
+}
+
+.q1-bg-blob-img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90vw;
+  height: auto;
+  filter: blur(60px);
+}
+
+/* ===================== Q1 DRAG & DROP ===================== */
+.q1-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: none;
+  pointer-events: none;
+}
+
+/* hide native cursor across the whole screen when Q1 is active */
+#screen-question.q1-active,
+#screen-question.q1-active * {
+  cursor: none !important;
+}
+
+.q1-label-panel,
+.q1-label-panel * {
+  cursor: default !important;
+}
+
+#screen-question.q1-active .question-text {
+  color: #5e0015;
+  font-family: 'PPNeueCorp', sans-serif;
+  font-weight: 500;
+}
+
+/* Title: normal size/font, translated down to match art text position */
+#screen-question.q1-title-centered .question-text {
+  transform: translateY(52vh);
+  text-align: center;
+  justify-self: center;
+  color: #5e0015;
+}
+
+/* No pink differentiation in the large centered state */
+#screen-question.q1-title-centered .q1-pink-word {
+  color: inherit;
+  font-weight: inherit;
+}
+
+#screen-question.q1-active .question-text.title-god-shift {
+  transform: translateX(28vw);
+}
+
+.q1-pink-word {
+  color: inherit;
+  font-weight: 700;
+}
+
+#screen-question.q1-active .progress-dot {
+  background: rgba(94, 0, 21, 0.25);
+}
+
+#screen-question.q1-active .progress-dot.current,
+#screen-question.q1-active .progress-dot.answered {
+  background: #5e0015;
+}
+
+#screen-question.q1-active .btn-next {
+  display: none;
+}
+
+#screen-question.q1-active .btn-prev {
+  background: #6d1631;
+  color: #fed5d6;
+  border-color: transparent;
+}
+
+/* Hide old full-screen drop rect — corner circle is the target now */
+#screen-question.q1-active #q1-drop-zone {
+  display: none;
+}
+
+/* Drop zone element hidden for Q1 — progress dot is the drop zone */
+#screen-question.q1-active .q4v2-right {
+  display: none !important;
+}
+
+/* Tray: right side, no box */
+#screen-question.q1-active .q1-icon-tray {
+  gap: 72px;
+  align-items: center;
+  right: var(--ph);
+}
+#screen-question.q1-active .q1-icon-tray::before {
+  display: none;
+}
+#screen-question.q1-active .q1-tray-pill {
+  display: none !important;
+}
+
+/* Icon slots */
+#screen-question.q1-active .q1-icon-slot {
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+#screen-question.q1-active .q1-icon {
+  width: 100%;
+  height: auto;
+  max-width: none;
+  object-fit: contain;
+  filter: none;
+  transform: scale(1.35);
+  transform-origin: right center;
+}
+
+/* Hide labels */
+#screen-question.q1-active .q1-icon-label {
+  display: none;
+}
+
+/* Hover state: fade all icons except the hovered one */
+#screen-question.q1-active.q1-hovering .q1-icon-slot {
+  opacity: 0;
+}
+#screen-question.q1-active.q1-hovering .q1-icon-slot.q1-slot-hovered {
+  opacity: 1;
+}
+
+#screen-question.q1-active .q1-icon-slot.q1-slot-dragging .q1-icon {
+  opacity: 0.2;
+  filter: brightness(0);
+}
+
+/* Pulse ring under hovered icon — spinning dotted stroke */
+.q1-pulse {
+  position: fixed;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: transparent;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0;
+  z-index: 6;
+  transition: opacity 0.15s ease;
+}
+.q1-pulse.visible {
+  opacity: 1;
+}
+
+.q1-pulse-ring {
+  fill: none;
+  stroke: #673ab0;
+  stroke-width: 2.5;
+  stroke-dasharray: 4 8;
+  stroke-linecap: round;
+  transform-origin: 55px 55px;
+  animation: q1-pulse-spin 3s linear infinite;
+}
+
+#screen-question.q1-active .q1-pulse-ring,
+#screen-question.q4-active .q1-pulse-ring {
+  stroke: #5e0015;
+}
+
+@keyframes q1-pulse-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.center-hint {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  pointer-events: none;
+  font-family: 'PPNeueMontreal', sans-serif;
+  font-size: clamp(18px, 1.8vw, 26px);
+  color: rgba(94, 0, 21, 0.45);
+  text-align: center;
+  white-space: nowrap;
+  opacity: 1;
+  transition: opacity 0.4s ease;
+  z-index: 4;
+}
+
+.center-hint.hint-visible {
+  display: block;
+}
+
+.center-hint.hint-gone {
+  opacity: 0;
+}
+
+#screen-question.art-showing .center-hint {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.q2-drag-hint {
+  display: none;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  align-self: start;
+  justify-self: center;
+  margin: 0;
+  pointer-events: none;
+  font-family: 'PPNeueMontreal', sans-serif;
+  font-size: 26.5px;
+  color: #6d1631;
+  opacity: 0.7;
+}
+
+#screen-question.q2-active .q2-drag-hint {
+  display: block;
+}
+
+/* ── Q4 active overrides (light background — dark accents) ── */
+#screen-question.q4-active,
+#screen-question.q4-active * {
+  cursor: none !important;
+}
+
+#screen-question.q4-active .question-text {
+  color: #5e0015;
+}
+
+#screen-question.q4-active .question-text.title-news-shift {
+  transform: translateX(18vw);
+}
+
+#screen-question.q4-active .progress-dot {
+  background: rgba(94, 0, 21, 0.25);
+}
+
+#screen-question.q4-active .progress-dot.current,
+#screen-question.q4-active .progress-dot.answered {
+  background: #5e0015;
+}
+
+/* ── Q2 overrides ── */
+
+#screen-question.q2-active .progress-dot {
+  background: rgba(109, 22, 49, 0.25);
+}
+
+#screen-question.q2-active .progress-dot.current,
+#screen-question.q2-active .progress-dot.answered {
+  background: #6d1631;
+}
+
+/* ── Q4 overrides ── */
+#screen-question.q4-active .q1-drop-rect {
+  stroke: rgba(94, 0, 21, 0.4);
+}
+
+#screen-question.q4-active .q1-drop-zone.q1-dragging .q1-drop-rect {
+  fill: rgba(94, 0, 21, 0.06);
+}
+
+#screen-question.q4-active .q1-drop-zone.q1-has-drop .q1-drop-rect {
+  stroke: transparent;
+  fill: transparent;
+}
+
+#screen-question.q4-active .illustration-area {
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding-left: 6vw;
+  overflow: visible;
+}
+
+#screen-question.q4-active .illustration-img {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  object-fit: contain;
+  object-position: top center;
+}
+
+/* Q4 illustration modifiers — adjust scale and position individually */
+.ill-pope {
+  transform: scale(1.05) translateY(10%);
+  transform-origin: bottom left;
+  object-position: 10% bottom;
+}
+
+.ill-2 {
+  transform: scale(0.9);
+  transform-origin: bottom left;
+  object-position: 40% 115%;
+}
+
+.ill-3 {
+  transform: scale(0.93);
+  transform-origin: bottom left;
+  object-position: 1% 120%;
+}
+
+.ill-4 {
+  transform: scale(0.86);
+  transform-origin: bottom left;
+  object-position: 30% 115%;
+}
+
+#screen-question.q4-active .q1-circle-text {
+  color: #5e0015;
+}
+
+#screen-question.q4-active .q1-icon-tray {
+  gap: 72px;
+  align-items: center;
+  right: var(--ph);
+}
+
+#screen-question.q4-active .q1-icon-slot {
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+}
+
+#screen-question.q4-active .q1-icon {
+  width: 100%;
+  height: auto;
+  max-width: none;
+  object-fit: contain;
+  filter: none;
+  transform: scale(1.35);
+  transform-origin: right center;
+}
+
+#screen-question.q4-active .q1-icon-label {
+  font-weight: 400;
+  font-size: 18px;
+  color: #f4b8c8;
+  text-align: center;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.2;
+  width: 100%;
+  margin-top: 6px;
+}
+
+#screen-question.q4-active .q1-icon-slot:hover .q1-icon-label {
+  color: #f4b8c8;
+}
+
+
+#screen-question.q4-active .q1-icon-tray::before {
+  display: none;
+}
+
+#screen-question.q4-active .q1-icon-slot.q1-slot-dragging .q1-icon {
+  opacity: 0.2;
+  filter: brightness(0);
+}
+
+/* Custom cursor */
+body.art-is-showing .q1-custom-cursor,
+body.art-is-showing .q2-custom-cursor { display: none !important; }
+body.art-is-showing,
+body.art-is-showing #screen-question,
+body.art-is-showing #screen-question * { cursor: auto !important; }
+
+.q1-custom-cursor {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  display: none;
+  /* center the image on the mouse point */
+  transform: translate(-50%, -40%);
+}
+
+.q1-cursor-img {
+  width: 72px;
+  height: auto;
+  display: block;
+}
+
+.q1-cursor-normal .q1-cursor-img {
+  /* rotation is applied dynamically in JS based on mouse Y */
+  margin-top: 12px;
+}
+
+.q1-cursor-hover .q1-cursor-img,
+.q1-cursor-grab .q1-cursor-img {
+  width: 92px;
+}
+
+.q1-cursor-grab .q1-cursor-img {
+  margin-top: -16px;
+}
+
+/* ── Q2 cursor — suppressed; global sb-cursor-none handles it ── */
+
+.q2-custom-cursor,
+.q2-custom-cursor * {
+  cursor: default !important;
+}
+
+.q2-custom-cursor {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  display: none;
+  transform: translate(-50%, -50%);
+}
+
+.q2-custom-cursor img {
+  width: 90px;
+  height: auto;
+  display: block;
+}
+
+/* ── Q2 bottom dashed line ── */
+.q2-bottom-line {
+  display: none;
+  position: absolute;
+  bottom: calc(var(--pv) * 4 + 40px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(6*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 5*var(--gap));
+  pointer-events: none;
+  z-index: 20;
+}
+
+#screen-question.q2-active .q2-bottom-line {
+  display: block;
+}
+
+.q2-dash-line {
+  animation: dash-march 2s linear infinite;
+}
+
+.q1-drop-zone {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+}
+
+.q1-drop-circle {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+.q1-drop-rect {
+  transition: fill 0.3s ease, stroke 0.25s ease;
+  animation: dash-march 2s linear infinite;
+}
+
+@keyframes dash-march {
+  to { stroke-dashoffset: -34; }
+}
+
+.q1-drop-zone.q1-has-drop .q1-drop-rect {
+  stroke: transparent;
+}
+
+.q1-drop-zone.q1-dragging .q1-drop-rect {
+  fill: rgba(253, 241, 134, 0.07);
+  filter: drop-shadow(0 0 40px rgba(253, 241, 134, 0.3));
+}
+
+.q1-circle-text {
+  display: none;
+}
+
+
+.q1-icon-tray {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  right: var(--ph);
+  width: calc(0.7*(100vw - 2*var(--ph) - 11*var(--gap))/12);
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  overflow: visible;
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.q1-icon-tray.tray-hidden {
+  transform: translateY(-50%) translateX(calc(100% + var(--ph) + 15px));
+  pointer-events: none;
+}
+
+.q1-tray-pill {
+  display: none;
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 90px;
+  background: #fdf186;
+  border-radius: 40px 0 0 40px;
+  cursor: pointer;
+  pointer-events: auto;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #6d1631;
+  transition: width 0.2s ease;
+  z-index: 20;
+}
+
+.q1-tray-pill:hover {
+  width: 44px;
+}
+
+#screen-question.q4-active .q1-tray-pill {
+  background: #673ab0;
+  color: #e8d5f5;
+}
+
+#screen-question.q1-active .q1-tray-pill.pill-visible,
+#screen-question.q4-active .q1-tray-pill.pill-visible {
+  display: flex;
+}
+
+.q1-icon-tray::before {
+  content: '';
+  position: absolute;
+  inset: -15px;
+  inset-block: -35px;
+  left: -30px;
+  right: calc(-1 * var(--ph));
+  background: #fdf186;
+  border-radius: 80px 0 0 80px;
+  z-index: -1;
+}
+
+.q1-icon-slot {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.q1-icon-slot.q1-slot-dragging .q1-icon {
+  opacity: 0.35;
+  filter: none;
+}
+
+.q1-icon-slot.q1-slot-dragging .q1-icon-label {
+  opacity: 0;
+}
+
+.q1-icon-label {
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 20px;
+  color: #6d1631;
+  text-align: center;
+  pointer-events: none;
+  user-select: none;
+  white-space: normal;
+  word-break: break-word;
+  margin-top: 6px;
+}
+
+.q1-icon-slot:hover {
+  transform: translateY(-8px);
+}
+
+.q1-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: none;
+  cursor: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  transition: opacity 0.15s ease;
+}
+
+
+
+/* ===================== Q5 LOTTIE ===================== */
+
+.q5-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+}
+
+.q5-box {
+  position: absolute;
+  inset: 0;
+}
+
+.q5-slot {
+  position: absolute;
+}
+
+.q5-anim-container {
+  position: absolute;
+  inset: 0;
+}
+
+.q5-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center bottom;
+}
+
+
+.q5-tray {
+  position: absolute;
+  right: var(--ph);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  align-items: flex-end;
+  z-index: 10;
+}
+
+/* ---- icon buttons ---- */
+.q5-icon-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.q5-icon-wrap {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+
+.q5-icon-wrap svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* stroke layer — always visible */
+.q5-icon-wrap .q5-stroke-path {
+  fill: none;
+  stroke: #550017;
+  stroke-width: 14;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* fill layer — revealed by shrinking mask circle (outer→center) */
+.q5-icon-wrap .q5-fill-path {
+  fill: #550017;
+  stroke: none;
+}
+
+.q5-icon-wrap .q5-mask-circle {
+  r: 0;
+}
+
+.q5-icon-btn {
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.q5-icon-btn:hover {
+  opacity: 0.45;
+}
+
+.q5-icon-btn.q5-icon-active {
+  opacity: 1;
+}
+
+/* label: identical to q3 circles — hidden until hover/active */
+
+/* ===================== Q3 SWIPE ===================== */
+
+.q3-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+}
+
+.q3-box {
+  position: absolute;
+  inset: 0;
+  user-select: none;
+}
+
+.q3-slot {
+  position: absolute;
+}
+
+.q3-illustration {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  transition: filter 0.3s ease, opacity 0.3s ease;
+}
+
+.q3-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  font-size: 26.5px;
+  color: #fe80fe;
+  pointer-events: none;
+}
+
+.q3-tray {
+  position: absolute;
+  right: var(--ph);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  align-items: flex-end;
+  z-index: 10;
+}
+
+.q3-circle-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.q3-circle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #fff;
+  border: 4px solid #550017;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.q3-circle-btn:hover .q3-circle,
+.q3-circle-btn.q3-circle-active .q3-circle {
+  background: #550017;
+}
+
+.q3-circle-label {
+  color: transparent;
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 20px;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: color 0.15s;
+}
+
+.q3-circle-btn:hover .q3-circle-label,
+.q3-circle-btn.q3-circle-active .q3-circle-label,
+.q5-icon-btn:hover .q3-circle-label,
+.q5-icon-btn.q5-icon-active .q3-circle-label {
+  color: #550017;
+}
+
+/* ===================== Q2 SCRUB ===================== */
+
+.q2-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: calc(var(--pv) * 2);
+  cursor: ew-resize;
+}
+
+.q2-animation {
+  width: calc(9*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 8*var(--gap));
+  height: calc(9*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 8*var(--gap));
+  max-height: 92vh;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Q6 simulation scrub overlay */
+.q6-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  cursor: ew-resize;
+  background: #f8d4d5;
+  align-items: center;
+  justify-content: center;
+}
+
+.q6-animation {
+  width: 95%;
+  height: 95%;
+  pointer-events: none;
+  user-select: none;
+}
+
+.q6-animation svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Q6 title — all burgundy, no pink */
+#screen-question.q6-active .q1-pink-word {
+  color: var(--text-primary);
+}
+
+/* Q6 next button — no override needed, inherits nowrap from base */
+
+/* Disabled Next button state */
+.btn-next-disabled {
+  opacity: 0.3 !important;
+  pointer-events: none !important;
+}
+
+/* ===================== PER-RESULT OVERRIDES ===================== */
+/* Nonchalant: char to end of col 9 */
+#screen-results.result-nonchalant .results-char-img {
+  width: calc(8.8*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 7.8*var(--gap));
+}
+
+/* Runaway: char to col 7 */
+#screen-results.result-runaway .results-char-img {
+  width: calc(7*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 6*var(--gap));
+}
+
+/* Know-It-All: char to ¼ into col 9, art to 4.5 cols */
+#screen-results.result-knowitall .results-char-img {
+  width: calc(8.4*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 7.4*var(--gap));
+}
+#screen-results.result-knowitall .results-art-img {
+  width: calc(4.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 3.5*var(--gap));
+  right: calc(var(--ph) * 2 + (100vw - 2*var(--ph) - 11*var(--gap))/12 + var(--gap));
+}
+
+/* Clueless: char a little before col 7, art to 4 cols, shifted left 1 col */
+#screen-results.result-clueless .results-char-img {
+  width: calc(6.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 5.5*var(--gap));
+}
+#screen-results.result-clueless .results-art-img {
+  width: calc(4*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 3*var(--gap));
+  right: calc(var(--ph) * 2 + (100vw - 2*var(--ph) - 11*var(--gap))/12 + var(--gap));
+}
+
+/* ===================== RESULTS DEV FLIP ===================== */
+.results-dev-flip {
+  position: absolute;
+  top: var(--pv);
+  right: var(--ph);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 100;
+  background: rgba(0,0,0,0.15);
+  padding: 8px 14px;
+  border-radius: 100px;
+}
+
+.btn-dev-flip {
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.btn-dev-flip:hover { opacity: 1; }
+
+.flip-label {
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 90px;
+  text-align: center;
+}
+
+/* ===================== RESPONSIVE ===================== */
+@media (max-width: 1024px) {
+  :root {
+    --carousel-right: 24px;
+  }
+}
+
+.btn-pre-art {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: none !important;
+}
+
+/* ===================== ART OVERLAY ===================== */
+/* col_w = (100vw - 2*--ph - 11vw) / 12, starts at col 2, ends at col 11 by default */
+.art-overlay {
+  display: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: calc(var(--ph) + (100vw - 2*var(--ph) - 11*var(--gap))/12 + 1*var(--gap));
+  width: calc(10*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 9*var(--gap));
+  z-index: 30;
+  cursor: pointer;
+  transition: opacity 0.5s ease;
+}
+
+.art-overlay img {
+  width: 100%;
+  height: auto;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Generic question intro text styles */
+.q-intro-heading {
+  font-family: 'PPNeueCorp', sans-serif;
+  font-weight: 500;
+  font-size: clamp(70px, 12vw, 190px);
+  line-height: 0.9;
+  letter-spacing: -0.01em;
+  color: #5e0015;
+}
+
+.q-intro-blame {
+  font-family: 'PPNeueCorp', sans-serif;
+  font-weight: 100;
+  font-size: clamp(70px, 12vw, 190px);
+  line-height: 0.9;
+  letter-spacing: -0.01em;
+  color: #5e0015;
+}
+
+#screen-question.art-showing .q2-overlay,
+#screen-question.art-showing .q6-overlay {
+  opacity: 0;
+  pointer-events: none !important;
+}
+
+#screen-question.art-showing .q3-tray,
+#screen-question.art-showing .q3-box {
+  opacity: 0;
+  pointer-events: none !important;
+}
+
+#screen-question.art-showing .q5-tray,
+#screen-question.art-showing .q5-box {
+  opacity: 0;
+  pointer-events: none !important;
+}
+
+#screen-question.art-showing .q4v2-right {
+  opacity: 0;
+  pointer-events: none !important;
+}
+
+/* ═══════════════════════════════════════════════
+   Q4 answer-lock circle (bottom-right drop target)
+   ═══════════════════════════════════════════════ */
+
+.q4v2-right {
+  display: none;
+  position: absolute;
+  left: 50%;
+  bottom: var(--pv);
+  transform: translateX(-50%);
+  z-index: 3;
+  pointer-events: auto;
+}
+
+#screen-question.q4-active .q4v2-right {
+  display: block;
+}
+
+.q4v2-drop-zone {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: #673ab0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.q4v2-drop-zone.q1-dragging {
+  transform: translateY(-40px) scale(1.5);
+}
+
+.q4v2-ring-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform-box: view-box;
+  transform-origin: center;
+}
+
+.q4v2-ring-dashed {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2;
+  stroke-dasharray: 6 8;
+  opacity: 0.7;
+  animation: q4v2-ring-march 8s linear infinite;
+  transform-box: view-box;
+  transform-origin: center;
+}
+
+@keyframes q4v2-ring-march {
+  to { transform: rotate(360deg); }
+}
+
+.q4v2-ring-fill {
+  display: none;
+}
+
+.q4v2-hint {
+  position: relative;
+  margin: 0;
+  text-align: center;
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.25;
+  color: #e8d5f5;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.q4v2-drop-zone.q1-has-drop .q4v2-hint {
+  opacity: 0;
+}
+
+@keyframes q4v2-pulse {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+
+.q4v2-drop-zone.q4v2-pulsing {
+  animation: q4v2-pulse 0.4s ease;
+}
+
+/* Ghost icon snapped into the drop circle during lock animation */
+.q4v2-locked-ghost {
+  pointer-events: none;
+  z-index: 501;
+  animation: q4v2-icon-shake 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes q4v2-icon-shake {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  15%  { transform: translate(-4px, -2px) rotate(-6deg); }
+  30%  { transform: translate(4px, 2px) rotate(6deg); }
+  45%  { transform: translate(-3px, -1px) rotate(-4deg); }
+  60%  { transform: translate(3px, 1px) rotate(4deg); }
+  75%  { transform: translate(-2px, 0px) rotate(-2deg); }
+  90%  { transform: translate(2px, 0px) rotate(2deg); }
+}
+
+/* Hide the old large rectangular drop-zone — Q4 uses the corner circle instead */
+#screen-question.q4-active #q1-drop-zone {
+  display: none;
+}
+
+/* Next button hidden — the corner circle drives advancement */
+#screen-question.q4-active .btn-next,
+#screen-question.q3dnd-active .btn-next,
+#screen-question.q5dnd-active .btn-next {
+  display: none;
+}
+
+/* Hide q4v2-right circle for Q4 now that morph dot is used */
+#screen-question.q4-active .q4v2-right {
+  display: none !important;
+}
+
+/* ── Q3 DND overrides ── */
+#screen-question.q3dnd-active,
+#screen-question.q3dnd-active * {
+  cursor: none !important;
+}
+
+#screen-question.q3dnd-active .question-text {
+  color: #3a3000;
+}
+
+#screen-question.q3dnd-active .progress-dot {
+  background: rgba(58, 48, 0, 0.2);
+}
+
+#screen-question.q3dnd-active .progress-dot.current,
+#screen-question.q3dnd-active .progress-dot.answered {
+  background: #673ab0;
+}
+
+#screen-question.q3dnd-active #q1-drop-zone {
+  display: none;
+}
+
+#screen-question.q3dnd-active .q4v2-right {
+  display: none !important;
+}
+
+#screen-question.q3dnd-active .q1-icon-tray {
+  gap: 72px;
+  align-items: center;
+  right: var(--ph);
+  z-index: 10;
+}
+
+#screen-question.q3dnd-active .q1-icon-tray::before {
+  display: none;
+}
+
+#screen-question.q3dnd-active .q1-tray-pill {
+  display: none !important;
+}
+
+#screen-question.q3dnd-active .q1-icon-slot {
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+#screen-question.q3dnd-active .q1-icon {
+  width: 100%;
+  height: auto;
+  max-width: none;
+  object-fit: contain;
+  filter: none;
+  transform: scale(1.35);
+  transform-origin: right center;
+}
+
+#screen-question.q3dnd-active .q1-icon-label {
+  display: none;
+}
+
+#screen-question.q3dnd-active.q1-hovering .q1-icon-slot {
+  opacity: 0;
+}
+
+#screen-question.q3dnd-active.q1-hovering .q1-icon-slot.q1-slot-hovered {
+  opacity: 1;
+}
+
+#screen-question.q3dnd-active .q1-icon-slot.q1-slot-dragging .q1-icon {
+  opacity: 0.2;
+  filter: brightness(0);
+}
+
+#screen-question.q3dnd-active .btn-prev {
+  background: #5c4a00;
+  color: #fef7b3;
+  border-color: transparent;
+}
+
+/* ── Q5 DND overrides ── */
+#screen-question.q5dnd-active,
+#screen-question.q5dnd-active * {
+  cursor: none !important;
+}
+
+#screen-question.q5dnd-active .question-text {
+  color: #3a3000;
+}
+
+#screen-question.q5dnd-active .progress-dot {
+  background: rgba(58, 48, 0, 0.2);
+}
+
+#screen-question.q5dnd-active .progress-dot.current,
+#screen-question.q5dnd-active .progress-dot.answered {
+  background: #673ab0;
+}
+
+#screen-question.q5dnd-active #q1-drop-zone {
+  display: none;
+}
+
+#screen-question.q5dnd-active .q4v2-right {
+  display: none !important;
+}
+
+#screen-question.q5dnd-active .q1-icon-tray {
+  gap: 72px;
+  align-items: center;
+  right: var(--ph);
+  z-index: 10;
+}
+
+#screen-question.q5dnd-active .q1-icon-tray::before {
+  display: none;
+}
+
+#screen-question.q5dnd-active .q1-tray-pill {
+  display: none !important;
+}
+
+#screen-question.q5dnd-active .q1-icon-slot {
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+#screen-question.q5dnd-active .q1-icon {
+  width: 100%;
+  height: auto;
+  max-width: none;
+  object-fit: contain;
+  filter: none;
+  transform: scale(1.35);
+  transform-origin: right center;
+}
+
+#screen-question.q5dnd-active .q1-icon-label {
+  display: none;
+}
+
+#screen-question.q5dnd-active.q1-hovering .q1-icon-slot {
+  opacity: 0;
+}
+
+#screen-question.q5dnd-active.q1-hovering .q1-icon-slot.q1-slot-hovered {
+  opacity: 1;
+}
+
+#screen-question.q5dnd-active .q1-icon-slot.q1-slot-dragging .q1-icon {
+  opacity: 0.2;
+  filter: brightness(0);
+}
+
+#screen-question.q5dnd-active .btn-prev {
+  background: #5c4a00;
+  color: #fef7b3;
+  border-color: transparent;
+}
+
+#screen-question.q5dnd-active .illustration-img.doom-img,
+#screen-question.q5dnd-active .illustration-img.nature-img,
+#screen-question.q5dnd-active .illustration-img.loved-img,
+#screen-question.q5dnd-active .illustration-img.reckless-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: calc(var(--pv) + 0.5em) calc(8vh + 260px) calc(var(--pv) * 2 + 2.6em) var(--ph);
+}
+
+/* ─── Answer Sidebar ──────────────────────────────────────────────────────── */
+
+#answer-sidebar {
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: calc(100vw / 12);
+  height: 100vh;
+  display: none;
+  flex-direction: column;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+#btn-next { display: none !important; }
+
+.sb-bubble {
+  flex: 1 1 0px;
+  width: 100%;
+  min-height: 0;
+  border-radius: 9999px;
+  border: 1.5px solid #5e0015;
+  box-sizing: border-box;
+  overflow: hidden;
+  position: relative;
+  pointer-events: auto;
+  transition: flex-grow 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* special shapes only when active — resting/answered state is always oval */
+.sb-bubble.sb-bubble-diamond.sb-active {
+  border-radius: 0;
+  border: none;
+}
+
+.sb-bubble.sb-q3-bubble.sb-active {
+  border-radius: 0 !important;
+  border: none !important;
+}
+
+.sb-bubble.sb-active {
+  background: #5e0015;
+}
+
+/* Q5's own yellow overrides the dark fill when it's the active wheel */
+.sb-q5-bubble.sb-active {
+  background: transparent;
+}
+
+/* Q2 and Q6 use hot pink when active */
+.sb-q2-bubble.sb-active,
+.sb-q6-bubble.sb-active {
+  background: #ff77ff;
+}
+
+.sb-q6-bubble.sb-active {
+  overflow: visible;
+}
+
+/* chips on dark active fill */
+.sb-bubble.sb-active .sb-chip {
+  border-color: transparent;
+  color: #fffce2;
+}
+.sb-bubble.sb-active .sb-chip.sb-chip-selected {
+  background: transparent;
+  border-color: #fffce2;
+  color: #fffce2;
+}
+.sb-bubble.sb-active .sb-chip-badge {
+  background: #fffce2;
+  color: #5e0015;
+}
+
+.sb-bubble-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+  display: none;
+}
+
+.sb-bubble.sb-active .sb-bubble-svg {
+  display: block;
+}
+
+/* ─── Answered icon ───────────────────────────────────────────────────────── */
+
+.sb-answered-wrap {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14%;
+  box-sizing: border-box;
+  transition: opacity 0.2s ease;
+}
+
+.sb-answered-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+/* ─── Q1 icon list ────────────────────────────────────────────────────────── */
+
+.sb-q1-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-evenly;
+  width: 100%;
+  height: 100%;
+  padding: 20% 0;
+  box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.sb-q1-list.sb-q1-list-show {
+  opacity: 1;
+}
+
+.sb-icons-bubble .sb-q1-list {
+  padding: 18% 0;
+  justify-content: center;
+  gap: 2%;
+}
+
+.sb-icons-bubble .sb-q1-slot {
+  flex: none;
+  padding: 1% 10%;
+}
+
+.sb-q1-slot {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  min-height: 0;
+  padding: 4% 10%;
+  box-sizing: border-box;
+}
+
+.sb-q1-slot.sb-q1-hovered {
+  transform: scale(1.12);
+}
+
+.sb-q1-slot.sb-q1-fade {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.sb-q1-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+}
+
+/* ─── Q1 selection ring ───────────────────────────────────────────────────── */
+.sb-q1-ring {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, 0);
+  border: 2px solid #fed5d6;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  transition: top 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.2s ease;
+  box-sizing: border-box;
+}
+
+.sb-q1-ring.sb-q1-ring-visible {
+  opacity: 1;
+}
+
+/* Answered state — ring hugs the bubble's pill shape */
+.sb-answered .sb-q1-ring {
+  position: absolute;
+  inset: 3px;
+  width: auto;
+  height: auto;
+  left: 3px;
+  top: 3px;
+  transform: none;
+  border-color: #5e0015;
+  border-radius: 9999px;
+  opacity: 1;
+  transition: none;
+}
+
+/* ─── Q2 slider ───────────────────────────────────────────────────────────── */
+
+.sb-q2-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sb-q2-line {
+  position: absolute;
+  left: 50%;
+  top: 10%;
+  bottom: 10%;
+  width: 14px;
+  transform: translateX(-50%);
+  background: #fed5d6;
+  border: 1.5px solid #5e0015;
+  border-radius: 9999px;
+}
+
+.sb-q2-dot {
+  position: absolute;
+  left: 50%;
+  top: var(--dp, 20%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1.5px solid #5e0015;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  box-sizing: border-box;
+  transition: width 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+              height 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+              background 0.2s ease,
+              border-color 0.2s ease;
+}
+
+.sb-q2-dot.sb-q2-dot-active {
+  width: 100px;
+  height: 100px;
+  background: transparent;
+  border: 3px solid #fed5d6;
+}
+
+.sb-q2-knob {
+  position: absolute;
+  left: 50%;
+  top: calc(12% + var(--ky, 0%) * 0.76);
+  width: calc(100% - 16px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  z-index: 2;
+  overflow: visible;
+  transition: top 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sb-q2-knob:active {
+  cursor: grabbing;
+  transition: none;
+}
+
+/* Suppress Q2 cursor and old overlay controls in sidebar mode */
+#screen-question.q2-active .q2-custom-cursor { display: none !important; }
+
+/* Q2 / Q6 sidebar mode — disable overlay events, hide legacy hints */
+#screen-question.q2-sidebar .q2-drag-hint   { display: none !important; }
+#screen-question.q2-sidebar .q2-bottom-line { display: none !important; }
+#screen-question.q2-sidebar .q2-overlay     { pointer-events: none !important; cursor: default !important; }
+#screen-question.q6-sidebar .q6-overlay     { pointer-events: none !important; cursor: default !important; }
+
+/* Fix knob travel to match full track range (10% → 90%) */
+.sb-q2-knob {
+  top: calc(12% + var(--ky, 0%));
+}
+
+/* Art-phase active bubble — widens leftward to show number */
+.sb-bubble {
+  transition: flex-grow 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              width 0.45s cubic-bezier(0.4, 0, 0.6, 1),
+              transform 0.45s cubic-bezier(0.4, 0, 0.6, 1);
+}
+.sb-bubble.sb-art-active {
+  background: #5e0015;
+  border-color: #5e0015;
+}
+.sb-bubble.sb-art-active .sb-bubble-num {
+  color: #fffce2;
+}
+
+/* ── Multi-select chips (Q3) ─────────────────────────────────────────────── */
+.sb-multiselect-hint {
+  position: absolute;
+  top: 28px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: 'PPNeueMontreal', sans-serif;
+  font-size: clamp(13px, 1.3vw, 17px);
+  color: #fed5d6;
+  pointer-events: none;
+  user-select: none;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.sb-multiselect-hint.sb-hint-visible {
+  opacity: 1;
+}
+.sb-bubble.sb-multi-select {
+  flex-grow: var(--q3-bubble-grow) !important;
+  overflow: visible;
+}
+.sb-chip-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--q3-chip-gap);
+  width: 100%;
+  height: 100%;
+  padding: 18% 8% 2%;
+  box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.sb-chip-list.sb-chip-list-show {
+  opacity: 1;
+}
+.sb-chip {
+  position: relative;
+  border: 1.5px solid transparent;
+  border-radius: 999px;
+  padding: 8px 0;
+  font-family: 'PPNeueMontreal', sans-serif;
+  font-size: clamp(18px, 1.8vw, 26px);
+  color: #5e0015;
+  text-align: center;
+  cursor: pointer;
+  white-space: nowrap;
+  width: 100%;
+  overflow: visible;
+  transition: border-color 0.2s ease, color 0.2s ease;
+  user-select: none;
+}
+.sb-chip.sb-chip-selected {
+  border-color: #5e0015;
+}
+.sb-chip-badge {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #5e0015;
+  color: #fffce2;
+  font-family: 'PPNeueMontreal', sans-serif;
+  font-size: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Bubble numbers */
+.sb-bubble-num {
+  font-family: 'PPNeueCorp', sans-serif;
+  font-weight: 100;
+  font-size: clamp(18px, 2.2vw, 32px);
+  color: #5e0015;
+  line-height: 1;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.sb-bubble.sb-active .sb-bubble-num,
+.sb-bubble.sb-answered .sb-bubble-num {
+  opacity: 0;
+}
+.sb-art-squeezed .sb-bubble .sb-bubble-num {
+  opacity: 1 !important;
+}
+
+/* ── Q5 half-circle wheel ──────────────────────────────────────────────────── */
+.sb-q5-bubble {
+  overflow: hidden;
+  align-self: flex-end;
+}
+
+.sb-q5-bubble.sb-q5-active {
+  border-radius: 9999px 0 0 9999px !important;
+  background: #5e0015 !important;
+  border-right: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
+}
+
+
+.sb-wheel-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.sb-wheel-slot {
+  position: absolute;
+  width: 38%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transform-origin: center center;
+  will-change: transform, opacity;
+}
+
+.sb-wheel-icon {
+  width: 100%;
+  height: auto;
+  display: block;
+  pointer-events: none;
+}
+
+.sb-wheel-icon-loved {
+  transform: scale(1.35);
+}
+
+/* ── Inline Next (inside the next question's bubble) ──────────────────────── */
+.sb-bubble.sb-next-inline {
+  background: #ff77ff;
+  border-color: #ff77ff;
+  cursor: pointer;
+}
+
+.sb-next-inline-label {
+  color: #5e0015;
+  font-family: 'PPNeueCorp', sans-serif;
+  font-weight: 500;
+  font-size: clamp(13px, 1.4vw, 20px);
+  pointer-events: none;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+/* ── Next bubble ───────────────────────────────────────────────────────────── */
+.sb-next {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  transition: flex-basis 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              flex-grow 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.3s ease 0.15s,
+              background 0.3s ease !important;
+}
+
+.sb-next-disabled {
+  pointer-events: none;
+}
+
+.sb-next-enabled {
+  background: #5e0015;
+}
+
+.sb-next-label {
+  font-family: 'PPNeueCorp', sans-serif;
+  font-weight: 500;
+  font-size: clamp(13px, 1.4vw, 20px);
+  color: #fff;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  white-space: nowrap;
+}
+
+.sb-next-enabled .sb-next-label {
+  opacity: 1;
+}
+
+/* ── Q1 custom cursor ──────────────────────────────────────────────────────── */
+body.sb-cursor-none,
+body.sb-cursor-none * {
+  cursor: none !important;
+}
+body.art-is-showing.sb-cursor-none,
+body.art-is-showing.sb-cursor-none * {
+  cursor: auto !important;
+}
+
+/* Restore default cursor on nav buttons regardless of sb-cursor-none */
+body.sb-cursor-none .btn-next,
+body.sb-cursor-none .btn-prev,
+body.sb-cursor-none .globe-hitarea,
+body.sb-cursor-none .globe-container {
+  cursor: auto !important;
+}
+
+.sb-custom-cursor {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  width: 56px;
+  /* pointing right: tip is on the right edge, shift left so tip = mouse */
+  transform: translate(-85%, -50%) rotate(90deg);
+  transition: width 0.15s ease, transform 0.15s ease;
+}
+
+.sb-custom-cursor.sb-cursor-hover {
+  width: 80px;
+  /* pointing up: tip is at top edge, shift up so tip = mouse */
+  transform: translate(-50%, -15%) rotate(0deg);
+}
+
+.sb-custom-cursor.sb-cursor-grab {
+  width: 64px;
+  transform: translate(-50%, -15%) rotate(0deg);
+}
+
+.sb-custom-cursor.sb-cursor-straight {
+  transform: translate(-50%, -15%) rotate(0deg);
+}
+
+.sb-custom-cursor.sb-cursor-scroll {
+  width: 64px;
+  transform: translate(-50%, -50%);
+  opacity: 0.5;
+}
+
+.sb-custom-cursor img {
+  width: 100%;
+  display: block;
+  user-select: none;
+}
+
+/* ── Q1 click-icons ────────────────────────────────────────────────────────── */
+.sb-q1-clickable {
+  cursor: none;
+  transition: opacity 0.2s ease;
+}
+
+.sb-q1-icon {
+  transition: transform 0.25s ease;
+}
+
+.sb-q1-clickable:hover .sb-q1-icon {
+  transform: translateY(-10px);
+}
+
+/* ===================== COMIC EXIT SEQUENCE ===================== */
+
+/* Gradient overlay — dark top → pink bottom fades in as panels leave,
+   then snaps to solid pink the moment globe meets the character. */
+.comic-bg-overlay {
+  position: absolute;
+  inset: 0;
+  /* Nearly black with a faint deep-red glow only at the very bottom */
+  background: linear-gradient(to bottom, #0e0008 0%, #0e0008 72%, #3d0115 100%);
+  opacity: 0;
+  transition: opacity 0.5s ease, background 2.8s ease;
+  z-index: 0;
+  pointer-events: none;
+}
+.comic-bg-overlay.gradient-in { opacity: 1; }
+/* Triggered ~1s after float starts — gradually blooms into full pink gradient */
+.comic-bg-overlay.gradient-warm {
+  background: linear-gradient(to bottom, #3d0115 0%, #fe80fe 100%);
+}
+.comic-bg-overlay.full-pink {
+  background: #fe80fe;
+  transition: opacity 0.5s ease, background 0s;
+}
+
+/* Slide panels and UI chrome upward; each element gets a small stagger
+   so they leave the stage one after the other rather than all at once. */
+#screen-comic-reveal.exiting .comic-panel,
+#screen-comic-reveal.exiting .comic-title-box,
+#screen-comic-reveal.exiting .comic-continue,
+#screen-comic-reveal.exiting .comic-idle-hint {
+  transition: transform 0.7s cubic-bezier(0.4, 0, 0.8, 0.2) !important;
+  transform: translateY(-110vh) !important;
+  pointer-events: none !important;
+}
+/* Per-element stagger delays */
+#screen-comic-reveal.exiting .comic-title-box    { transition-delay: 0s !important; }
+#screen-comic-reveal.exiting .comic-panel-box-q4 { transition-delay: 0.07s !important; }
+#screen-comic-reveal.exiting .comic-panel-q4     { transition-delay: 0.14s !important; }
+#screen-comic-reveal.exiting .comic-panel-q1     { transition-delay: 0.21s !important; }
+#screen-comic-reveal.exiting .comic-panel-q5     { transition-delay: 0.28s !important; }
+#screen-comic-reveal.exiting .comic-footbox      { transition-delay: 0.35s !important; }
+
+#screen-comic-reveal.exiting .comic-bubble,
+#screen-comic-reveal.exiting .comic-bubble-shapes {
+  opacity: 0 !important;
+  transition: opacity 0.3s ease !important;
+  pointer-events: none !important;
+}
+
+/* Character floats gently once freed from the panels */
+@keyframes comic-float {
+  0%, 100% { transform: translateY(-50%) scale(1); }
+  50%       { transform: translateY(calc(-50% - 12px)) scale(1); }
+}
+
+.comic-character.floating {
+  opacity: 1;
+  left: calc(50% - var(--char-w) / 2);
+  animation: comic-float 3s ease-in-out infinite;
+  transition: left 1.2s ease, opacity 0.8s ease;
+  z-index: 20;
+}
+/* Character shrinks away in place when the user hits "to the results".
+   Kept alongside .floating (not replacing it) and forced with !important so it
+   overrides the float animation/transform, collapsing to scale(0) about its own
+   centre so it vanishes exactly where it was. */
+.comic-character.char-shrink {
+  animation: none !important;
+  transform: translateY(-50%) scale(0) !important;
+  transform-origin: 50% 50% !important;
+  transition: transform 0.6s cubic-bezier(0.5, 0, 0.75, 0.35) !important;
+}
+.comic-character.char-gone { opacity: 0; }
+
+/* "to the results" button — bottom centre, below the floating character.
+   Fades in ~1s after he starts floating; on click it hides and he shrinks. */
+.comic-to-results {
+  position: absolute;
+  left: 50%;
+  bottom: 7vh;
+  transform: translateX(-50%) translateY(12px);
+  padding: 14px 30px;
+  border: none;
+  border-radius: 999px;
+  background: #5e0015;
+  color: #fff;
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  z-index: 25;
+}
+.comic-to-results.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
+/* Globe rises from below, starts tiny, grows as it approaches center */
+.comic-exit-globe {
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  width: calc(3.5 * (var(--col) + var(--comic-gap)));
+  transform: translate(-50%, 80vh) scale(0.3);
+  transition: transform 1.2s cubic-bezier(0.3, 0, 0.2, 1), opacity 0.5s ease;
+  z-index: 15;
+  pointer-events: none;
+}
+.comic-exit-globe.globe-rising {
+  transform: translate(-50%, -50%);
+}
+.comic-exit-globe-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  transition: opacity 0.5s ease;
+}
+.comic-exit-result-art {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: auto;
+  display: block;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+/* Globe "touches" character → globe img fades out, result art fades in */
+.comic-exit-globe.result-touched {
+  width: calc((5 * (var(--col) + var(--comic-gap))) * 1.035);
+  /* No transform override — stays locked at the touch position */
+  transition: width 0.7s ease, opacity 0.5s ease;
+}
+.comic-exit-globe.result-touched .comic-exit-globe-img { opacity: 0; }
+.comic-exit-globe.result-touched .comic-exit-result-art { opacity: 1; }
+/* Globe fades out when result art slides into its final bottom-right position */
+.comic-exit-globe.globe-hide { opacity: 0; }
+
+/* ---- Result page elements (built one per scroll) ---- */
+
+/* Left column: character art + description (mirrors .results-top-left) */
+.comic-results-left {
+  position: absolute;
+  top: var(--pv);
+  left: var(--ph);
+  z-index: 18;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+}
+
+.comic-result-char-img {
+  width: calc(10 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 9*var(--gap));
+  height: auto;
+  display: block;
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s ease, transform 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.comic-result-char-img.slide-in { opacity: 1; transform: translateY(0); }
+
+.comic-result-desc {
+  margin: 2.2vh 0 0;
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 26.5px;
+  line-height: 37px;
+  color: var(--text-primary);
+  max-width: calc(5 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 4*var(--gap));
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.7s ease, transform 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.comic-result-desc.slide-in { opacity: 1; transform: translateY(0); }
+
+/* Result art at its final bottom-right position (mirrors .results-art-img) */
+.comic-result-art {
+  position: absolute;
+  bottom: calc(var(--pv) * 3);
+  right: calc(var(--ph) * 2);
+  width: calc((5 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 4*var(--gap)) * 1.035);
+  height: auto;
+  z-index: 18;
+  opacity: 0;
+  transform: translateY(100vh);
+  transition: opacity 0.8s ease, transform 1s cubic-bezier(0.2, 0, 0.2, 1);
+  pointer-events: none;
+}
+.comic-result-art.slide-in { opacity: 1; transform: translateY(0); }
+
+/* ---- Per-result sizing overrides (mirror the #screen-results overrides) ---- */
+#screen-comic-reveal.result-nonchalant .comic-result-char-img {
+  width: calc(8.8 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 7.8*var(--gap));
+}
+#screen-comic-reveal.result-runaway .comic-result-char-img {
+  width: calc(7 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 6*var(--gap));
+}
+#screen-comic-reveal.result-knowitall .comic-result-char-img {
+  width: calc(8.4 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 7.4*var(--gap));
+}
+#screen-comic-reveal.result-knowitall .comic-result-art {
+  width: calc(4.5 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 3.5*var(--gap));
+  right: calc(var(--ph) * 2 + (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + var(--gap));
+}
+#screen-comic-reveal.result-clueless .comic-result-char-img {
+  width: calc(6.5 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 5.5*var(--gap));
+}
+#screen-comic-reveal.result-clueless .comic-result-art {
+  width: calc(4 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 3*var(--gap));
+  right: calc(var(--ph) * 2 + (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + var(--gap));
+}
