@@ -772,24 +772,25 @@ button {
 /* ===================== BOTTOM BAR ===================== */
 
 .btn-prev {
-  grid-column: 1 / 4;
-  grid-row: 3;
-  align-self: end;
-  justify-self: start;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  z-index: 10;
   pointer-events: auto;
   display: inline-flex;
   align-items: center;
   font-family: 'PPNeueCorp', system-ui, sans-serif;
   font-size: 20px;
   font-weight: 500;
-  color: #fed5d6;
+  color: #6d1631;
   border: 1.5px solid #6d1631;
-  background: #6d1631;
+  background: transparent;
   border-radius: 100px;
   padding: 15px 32px;
   transition: opacity 0.2s;
   visibility: hidden;
   box-shadow: none;
+  cursor: pointer;
 }
 
 .btn-prev:hover { opacity: 0.6; }
@@ -803,13 +804,13 @@ button {
   display: inline-flex;
   align-items: center;
   background: #6d1631;
-  color: #fed5d6;
+  color: #fe80fe;
   font-family: 'PPNeueCorp', system-ui, sans-serif;
   font-size: clamp(20px, 1.8vw, 28px);
   font-weight: 500;
   padding: 15px 32px;
   border-radius: 100px;
-  border: 1.5px solid transparent;
+  border: 1.5px solid #fe80fe;
   transition: opacity 0.2s;
   box-shadow: none;
   white-space: nowrap;
@@ -979,8 +980,8 @@ button {
 
   /* Character geometry — hoisted here so .comic-footbox can reference them
      without JS. Kept in sync with .comic-character below. */
-  --char-w:         calc(3.6 * (var(--col) + var(--comic-gap)));
-  --char-left-rest: calc(var(--ph) + 4.85 * (var(--col) + var(--comic-gap)));
+  --char-w:         min(calc(3.3 * (var(--col) + var(--comic-gap))), calc(74vh * 470.53 / 771.45));
+  --char-left-rest: calc(var(--ph) + 5.05 * (var(--col) + var(--comic-gap)));
   /* character height = width × viewBox ratio (470.53 wide × 771.45 tall) */
   --char-h:         calc(var(--char-w) * 771.45 / 470.53);
 }
@@ -1098,11 +1099,33 @@ button {
 .comic-bubble {
   position: absolute;
   box-sizing: border-box;
-  padding: clamp(18px, 2.2vh, 28px) clamp(16px, 1.8vw, 24px);
+  /* top | sides | bottom (tail clearance ~26% of SVG height) */
+  padding: clamp(14px, 1.8vh, 22px) clamp(22px, 2.8vw, 38px) clamp(52px, 5.5vh, 72px) clamp(22px, 2.8vw, 38px);
   opacity: 0;
   transition: opacity 0.4s ease;
   z-index: 12;
   pointer-events: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.bubble-svg-img {
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  height: 110%;
+  object-fit: fill;
+  pointer-events: none;
+}
+
+#comic-bubble-char-img {
+  width: 100%;
+  height: 100%;
+}
+
+.bubble-svg-img-flip {
+  transform: scaleX(-1);
 }
 
 .comic-bubble.visible {
@@ -1110,17 +1133,37 @@ button {
 }
 
 .comic-bubble-text {
+  position: relative;
+  z-index: 1;
   margin: 0;
   font-family: 'PPNeueMontreal', system-ui, sans-serif;
   font-weight: 400;
   font-size: clamp(15px, 1.6vw, 22px);
   color: var(--text-primary);
   white-space: normal;
+  text-align: left;
+}
+
+#comic-bubble-char-text {
   text-align: center;
+}
+
+/* Line 2 lives on its own block so no manual \n is needed */
+#comic-bubble-line2 {
+  display: block;
+}
+
+/* Second line stays invisible (but keeps its space) until stage 1 reveals it */
+.bubble-line2-hidden {
+  visibility: hidden;
 }
 
 /* Main character's speech bubble — same invisible container; positioned in
    ComicRevealInteraction._layoutCharacterBubble beside his head. */
+.comic-bubble-char {
+  align-items: center;
+  justify-content: center;
+}
 
 /* The actual visible bubble shapes
    outline with a small gap replaced by two straight lines tapering to a
@@ -1134,13 +1177,30 @@ button {
    side and the bubble text (12) on the other, so the shape can overlap the
    character (the tail often needs to) without ever covering its own text. */
 .comic-bubble-shapes {
-  position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 11;
-  pointer-events: none;
+  display: none;
 }
+
+/* Stage 2 full-screen cause text — same style as pre-comic Q2/Q4 lines */
+.comic-cause-text {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(55vw, 700px);
+  max-width: 90vw;
+  margin: 0;
+  text-align: center;
+  font-family: 'PPNeueCorp', sans-serif;
+  font-weight: 500;
+  font-size: clamp(36px, 5.5vw, 72px);
+  color: #fe80fe;
+  line-height: 1.1;
+  opacity: 0;
+  pointer-events: none;
+  transition: none !important;
+  z-index: 20;
+}
+.comic-cause-text.visible { opacity: 1; }
 
 .comic-bubble-shape {
   fill: #FFFCE2;
@@ -1154,7 +1214,7 @@ button {
      .comic-footbox can also reference them; the values are the same. */
 
   position: absolute;
-  top: 49%;
+  top: 53.5%; /* footbox stays at 55% (see .comic-footbox) — lifted slightly off it */
   left: calc(50% - var(--char-w) / 2); /* starts centered on screen */
   width: var(--char-w);
   aspect-ratio: 470.53 / 771.45; /* matches comic.svg's viewBox */
@@ -1165,21 +1225,20 @@ button {
      animates together with the existing translateY centering under one
      transition. */
   opacity: 0;
-  transform: translateY(-50%) scale(0.15);
-  transform-origin: 50% 78%;
-  transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.34, 1.2, 0.64, 1), opacity 0.5s ease;
+  transform: translateY(-50%) translateX(-100vw);
+  transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 2s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.6s ease;
   z-index: 10; /* on top of the panels/text */
   pointer-events: none;
 }
 
 .comic-character.grown {
   opacity: 1;
-  transform: translateY(-50%) scale(1);
+  transform: translateY(-50%) translateX(0);
 }
 
 /* Stage 1-2: nudges slightly left from center to make room for Q4 */
 .comic-character.nudged {
-  left: calc(50% - var(--char-w) / 2 - 1 * (var(--col) + var(--comic-gap)));
+  left: calc(50% - var(--char-w) / 2 - 0.4 * (var(--col) + var(--comic-gap)));
 }
 
 /* Stage >= 3: shifts right to its resting spot */
@@ -1207,24 +1266,23 @@ button {
 /* Ground panel behind his legs. z-index sits below .comic-character (10).
    Fully CSS-positioned using the hoisted --char-* variables so it stays
    perfectly in sync at any viewport size with no JS needed.
-   Derivation (all at the character's resting/placed position):
-     width  = 80% of character width
-     left   = character center − footbox center − the 0.25-col rightward
-               shift applied to the character (0.25/3.6 of --char-w)
-     top    = character visual bottom − footbox height
-            = (56vh + --char-h/2) − (footbox-width × 541.04/395.49)
-            = 56vh + --char-w × 0.8195 − --char-w × 0.8 × 1.3681
-            ≈ 56vh − --char-w × 0.2750   (simplified constant) */
+   Derived from --char-w so footbox stays locked to the character's feet at any
+   viewport size. --char-w is now capped at 80vh-equivalent so both vw and vh
+   stay in the same unit space and never diverge. */
 .comic-footbox {
   z-index: 9;
   aspect-ratio: 395.49 / 541.04;
   width: calc(var(--char-w) * 0.8);
   left:  calc(var(--char-left-rest) + var(--char-w) * 0.0306);
-  top:   calc(51vh - var(--char-w) * 0.275);
+  top:   calc(55% - var(--char-w) * 0.275);
 }
 
 /* Dev preview: these three are clickable (cycles through that question's
    answers) once visible — see ComicRevealInteraction._cyclePanel. */
+.comic-panel-q4.visible {
+  transform: translateX(0);
+}
+
 .comic-panel-q1.visible,
 .comic-panel-q4.visible,
 .comic-panel-q5.visible {
@@ -1238,7 +1296,7 @@ button {
    fixed gap (var(--comic-gap)); top edge starts below the title/caption row (rows 1-3)
    so it doesn't run under that text; bottom edge stays where it always was. */
 .comic-panel-box-q4 {
-  background: #fe80fe;
+  background: #ff88fc;
   z-index: 1; /* behind the <img> art (z-index 2), so bleed renders on top of it */
   left: calc(var(--ph) + 8 * (var(--col) + var(--comic-gap)) + var(--comic-gap));
   width: calc(3.75 * (var(--col) + var(--comic-gap)));
@@ -1262,8 +1320,14 @@ button {
   top: var(--sg-top);
   height: calc(12 * var(--sg-row)); /* matches .comic-panel-box-q4 behind it */
   object-fit: contain;
-  /* Smooth slide from centered (stage 1-2) to resting (stage 3+) */
-  transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+  /* The manual per-answer overrides (Q4_OVERRIDE in comic-reveal.js) make
+     some characters extend further left than the panel's default box, into
+     Q1/Q5's territory — bump z-index above both those panels (2) and the
+     speech bubble (11/12) so none of them ever clip his artwork. */
+  z-index: 15;
+  transform: translateX(100vw);
+  /* Slow slide-in from right on entry; smooth left/width when shifting to resting */
+  transition: opacity 0.6s ease, transform 2s cubic-bezier(0.25, 0.46, 0.45, 0.94),
               left 0.6s cubic-bezier(0.4, 0, 0.2, 1), width 0.6s ease;
 }
 
@@ -1277,54 +1341,6 @@ button {
   left: var(--ph);
   top: var(--sg-top); /* fallback before JS sets the real value */
   width: calc(8 * (var(--col) + var(--comic-gap)));  /* cols 1-9, full width, no cropping */
-}
-
-.comic-continue {
-  position: absolute;
-  left: calc(var(--ph) + 4 * (var(--col) + var(--comic-gap)));
-  top: calc(var(--comic-pv) + 11 * var(--row));
-  width: calc(4 * (var(--col) + var(--comic-gap)));
-  height: var(--row);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'PPNeueMontreal', system-ui, sans-serif;
-  font-size: 16px;
-  color: var(--text-secondary);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-  z-index: 6;
-}
-
-.comic-continue.visible {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-/* Idle nudge — same bottom-center spot as .comic-continue, but non-interactive
-   and can appear/disappear at any stage (not just the last one), whenever
-   ComicRevealInteraction's inactivity timer fires. See _armIdleTimer(). */
-.comic-idle-hint {
-  position: absolute;
-  left: calc(var(--ph) + 4 * (var(--col) + var(--comic-gap)));
-  top: calc(var(--comic-pv) + 11 * var(--row));
-  width: calc(4 * (var(--col) + var(--comic-gap)));
-  height: var(--row);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'PPNeueMontreal', system-ui, sans-serif;
-  font-size: 16px;
-  color: var(--text-secondary);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.4s ease;
-  z-index: 6;
-}
-
-.comic-idle-hint.visible {
-  opacity: 1;
 }
 
 /* Pre-scroll intro — the only thing visible on this screen before the first
@@ -1361,52 +1377,10 @@ button {
   50%      { opacity: 1; }
 }
 
-#screen-results {
-  background: #fe80fe;
-}
-
-.results-top-left {
-  position: absolute;
-  top: var(--pv);
-  left: var(--ph);
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.results-char-img {
-  width: calc(10*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 9*var(--gap));
-  height: auto;
-  display: block;
-}
-
-.results-desc {
-  margin-top: 2.2vh;
-  font-family: 'PPNeueMontreal', system-ui, sans-serif;
-  font-weight: 400;
-  font-size: 26.5px;
-  line-height: 37px;
-  color: var(--text-primary);
-  max-width: calc(5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 4*var(--gap));
-}
-
-.results-desc p {
-  margin: 0;
-  padding: 0;
-}
-
-.results-art-img {
-  position: absolute;
-  bottom: calc(var(--pv) * 3);
-  right: calc(var(--ph) * 2);
-  width: calc((5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 4*var(--gap)) * 1.035);
-  height: auto;
-  z-index: 1;
-}
 
 .btn-results {
   position: fixed;
-  bottom: var(--pv);
+  bottom: 0;
   z-index: 10;
   display: inline-flex;
   align-items: center;
@@ -1427,20 +1401,89 @@ button {
 }
 
 .btn-try-again {
-  left: var(--ph);
-  background: #fed5d6;
-  color: #6d1631;
-  border: none;
-}
-
-.btn-share {
-  right: var(--ph);
+  left: 0;
   background: transparent;
   color: #6d1631;
   border: 1.5px solid #6d1631;
 }
 
+.btn-share {
+  right: 0;
+  width: calc(100vw / 12);
+  justify-content: center;
+  background: #6d1631;
+  color: #fff;
+  border: none;
+}
+
 .btn-results:hover { opacity: 0.75; }
+
+.btn-share:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Share button camera-flash transition */
+.share-flash {
+  position: fixed;
+  inset: 0;
+  background: #fff;
+  opacity: 1;
+  z-index: 9999;
+  pointer-events: none;
+  transition: opacity 0.6s ease-out;
+}
+.share-flash--fade {
+  opacity: 0;
+}
+
+/* Comic nav arrows — fixed bottom-center, touching the screen's bottom edge
+   (no margin, same convention as #answer-sidebar touching the right edge).
+   Replace the old scroll/whole-screen-click interaction: right (forward,
+   pink fill) and left (back, stroked outline only — lower hierarchy)
+   advance/retreat one stage per click, same pace as one scroll tick used to. */
+#comic-nav-arrows {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  z-index: 10;
+}
+
+.comic-nav-arrow {
+  width: 128px;
+  height: 52px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'PPNeueCorp', system-ui, sans-serif;
+  font-size: 22px;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+
+.comic-nav-arrow.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.comic-nav-back {
+  background: transparent;
+  color: #fed5d6;
+  border: 1.5px solid #fed5d6;
+}
+
+.comic-nav-forward {
+  background: #fed5d6;
+  color: #6d1631;
+  border: none;
+}
+
+.comic-nav-arrow:hover { opacity: 0.75; }
 
 /* ===================== DEV BUTTON ===================== */
 #btn-dev-q2      { left: 10px;  }
@@ -1448,8 +1491,7 @@ button {
 #btn-dev-q4      { left: 130px; }
 #btn-dev-q5      { left: 190px; }
 #btn-dev-q6      { left: 250px; }
-#btn-dev-results  { left: 310px; }
-#btn-dev-comic    { left: 390px; }
+#btn-dev-comic    { left: 310px; }
 #btn-dev-comic-end { left: 480px; }
 
 .btn-dev-results {
@@ -2388,69 +2430,6 @@ body.art-is-showing #screen-question * { cursor: auto !important; }
   pointer-events: none !important;
 }
 
-/* ===================== PER-RESULT OVERRIDES ===================== */
-/* Nonchalant: char to end of col 9 */
-#screen-results.result-nonchalant .results-char-img {
-  width: calc(8.8*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 7.8*var(--gap));
-}
-
-/* Runaway: char to col 7 */
-#screen-results.result-runaway .results-char-img {
-  width: calc(7*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 6*var(--gap));
-}
-
-/* Know-It-All: char to ¼ into col 9, art to 4.5 cols */
-#screen-results.result-knowitall .results-char-img {
-  width: calc(8.4*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 7.4*var(--gap));
-}
-#screen-results.result-knowitall .results-art-img {
-  width: calc(4.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 3.5*var(--gap));
-  right: calc(var(--ph) * 2 + (100vw - 2*var(--ph) - 11*var(--gap))/12 + var(--gap));
-}
-
-/* Clueless: char a little before col 7, art to 4 cols, shifted left 1 col */
-#screen-results.result-clueless .results-char-img {
-  width: calc(6.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 5.5*var(--gap));
-}
-#screen-results.result-clueless .results-art-img {
-  width: calc(4*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 3*var(--gap));
-  right: calc(var(--ph) * 2 + (100vw - 2*var(--ph) - 11*var(--gap))/12 + var(--gap));
-}
-
-/* ===================== RESULTS DEV FLIP ===================== */
-.results-dev-flip {
-  position: absolute;
-  top: var(--pv);
-  right: var(--ph);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  z-index: 100;
-  background: rgba(0,0,0,0.15);
-  padding: 8px 14px;
-  border-radius: 100px;
-}
-
-.btn-dev-flip {
-  font-family: 'PPNeueMontreal', system-ui, sans-serif;
-  font-size: 13px;
-  color: var(--text-primary);
-  background: none;
-  border: none;
-  cursor: pointer;
-  opacity: 0.8;
-}
-
-.btn-dev-flip:hover { opacity: 1; }
-
-.flip-label {
-  font-family: 'PPNeueMontreal', system-ui, sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-  min-width: 90px;
-  text-align: center;
-}
 
 /* ===================== RESPONSIVE ===================== */
 @media (max-width: 1024px) {
@@ -2939,6 +2918,36 @@ body.art-is-showing #screen-question * { cursor: auto !important; }
   display: block;
 }
 
+.sb-answered-icon-multi {
+  width: 55%;
+  height: 55%;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.sb-answered-wrap.sb-answered-multi-2,
+.sb-answered-wrap.sb-answered-multi-3 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8%;
+}
+
+.sb-answered-wrap.sb-answered-multi-2 .sb-answered-icon-multi {
+  width: 60%;
+  height: 60%;
+}
+
+.sb-answered-wrap.sb-answered-multi-2 .sb-answered-icon-multi:not(:first-child),
+.sb-answered-wrap.sb-answered-multi-3 .sb-answered-icon-multi:not(:first-child) {
+  margin-left: -22%;
+}
+
+.sb-answered-wrap.sb-answered-multi-3 .sb-answered-icon-multi {
+  width: 48%;
+  height: 48%;
+}
+
 /* ─── Q1 icon list ────────────────────────────────────────────────────────── */
 
 .sb-q1-list {
@@ -3164,13 +3173,18 @@ body.art-is-showing #screen-question * { cursor: auto !important; }
   gap: var(--q3-chip-gap);
   width: 100%;
   height: 100%;
-  padding: 18% 8% 2%;
+  padding: 8px 8%;
   box-sizing: border-box;
+  transition: padding 0.3s ease, justify-content 0s;
   opacity: 0;
   transition: opacity 0.3s ease;
 }
 .sb-chip-list.sb-chip-list-show {
   opacity: 1;
+}
+.sb-chip-list.sb-chip-list-selected {
+  justify-content: flex-start;
+  padding-top: 88px;
 }
 .sb-chip {
   position: relative;
@@ -3276,14 +3290,19 @@ body.art-is-showing #screen-question * { cursor: auto !important; }
 }
 
 /* ── Inline Next (inside the next question's bubble) ──────────────────────── */
-.sb-bubble.sb-next-inline {
-  background: #ff77ff;
-  border-color: #ff77ff;
+.sb-bubble.sb-next-inline,
+.sb-bubble.sb-next-inline.sb-q2-bubble,
+.sb-bubble.sb-next-inline.sb-q3-bubble,
+.sb-bubble.sb-next-inline.sb-q5-bubble,
+.sb-bubble.sb-next-inline.sb-q6-bubble,
+.sb-bubble.sb-next-inline.sb-bubble-diamond {
+  background: #5e0015 !important;
+  border-color: #fe80fe;
   cursor: pointer;
 }
 
 .sb-next-inline-label {
-  color: #5e0015;
+  color: #fe80fe;
   font-family: 'PPNeueCorp', sans-serif;
   font-weight: 500;
   font-size: clamp(13px, 1.4vw, 20px);
@@ -3425,9 +3444,7 @@ body.sb-cursor-none .globe-container {
 /* Slide panels and UI chrome upward; each element gets a small stagger
    so they leave the stage one after the other rather than all at once. */
 #screen-comic-reveal.exiting .comic-panel,
-#screen-comic-reveal.exiting .comic-title-box,
-#screen-comic-reveal.exiting .comic-continue,
-#screen-comic-reveal.exiting .comic-idle-hint {
+#screen-comic-reveal.exiting .comic-title-box {
   transition: transform 0.7s cubic-bezier(0.4, 0, 0.8, 0.2) !important;
   transform: translateY(-110vh) !important;
   pointer-events: none !important;
@@ -3501,6 +3518,7 @@ body.sb-cursor-none .globe-container {
 
 /* Globe rises from below, starts tiny, grows as it approaches center */
 .comic-exit-globe {
+  display: none;
   position: absolute;
   left: 50%;
   top: 56%;
@@ -3613,4 +3631,215 @@ body.sb-cursor-none .globe-container {
 #screen-comic-reveal.result-clueless .comic-result-art {
   width: calc(4 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 3*var(--gap));
   right: calc(var(--ph) * 2 + (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + var(--gap));
+}
+
+/* ===================== SHARE MODE ===================== */
+
+/* Dark surround that frames the result card */
+body.share-mode {
+  background: #1a0005;
+}
+
+/* Hide try-again in share mode */
+body.share-mode #btn-restart {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* ── Share card base ──────────────────────────────────────────────────────────
+   Both cards are fixed inset:0 (100vw × 100vh). In share mode they shrink to
+   ~55% and float as a fanned deck. transform-origin: center center keeps them
+   centred while scale + rotate fans them. Transitions animate between states. */
+
+#screen-comic-reveal.share-active {
+  transform-origin: center center;
+  transform: scale(0.72) rotate(3deg);
+  border-radius: 24px;
+  z-index: 7;
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              border-radius 0.45s ease,
+              z-index 0s 0.22s,
+              opacity 0.4s ease;
+}
+
+/* Comic panel snapshot frame */
+#share-comic-frame {
+  position: fixed;
+  inset: 0;
+  background: #6d1631;
+  border-radius: 0;
+  overflow: hidden;
+  z-index: 6;
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              border-radius 0.45s ease,
+              z-index 0s 0.22s,
+              opacity 0.35s ease;
+  --comic-gap: 19px;
+  --comic-pv: 24px;
+  --col: calc((100vw - 2 * var(--ph) - 11 * var(--comic-gap)) / 12);
+  --row: calc((100vh - 2 * var(--comic-pv)) / 12);
+  --sg-top: calc(var(--comic-pv) + 1.2 * var(--row));
+  --sg-row: calc((100vh - var(--sg-top) - var(--comic-pv)) / 12);
+  --char-w:         min(calc(3.3 * (var(--col) + var(--comic-gap))), calc(74vh * 470.53 / 771.45));
+  --char-left-rest: calc(var(--ph) + 5.05 * (var(--col) + var(--comic-gap)));
+  --char-h:         calc(var(--char-w) * 771.45 / 470.53);
+}
+
+/* Default fan: result on top (rotated right), comic behind (rotated left) */
+body.share-mode #share-comic-frame {
+  transform-origin: center center;
+  transform: scale(0.72) rotate(-5deg);
+  border-radius: 24px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── Results selected only ────────────────────────────────────────────────── */
+body.share-result #screen-comic-reveal.share-active {
+  transform: scale(0.75) rotate(0deg);
+  z-index: 8;
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              border-radius 0.45s ease,
+              z-index 0s,
+              opacity 0.4s ease;
+}
+body.share-result #share-comic-frame {
+  transform: scale(0.72) rotate(-7deg);
+  z-index: 6;
+}
+
+/* ── Answers selected only ────────────────────────────────────────────────── */
+body.share-answers #share-comic-frame {
+  transform: scale(0.75) rotate(0deg);
+  z-index: 8;
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              border-radius 0.45s ease,
+              z-index 0s,
+              opacity 0.35s ease;
+}
+body.share-answers #screen-comic-reveal.share-active {
+  transform: scale(0.72) rotate(6deg);
+  z-index: 6;
+}
+
+/* ── Both selected — diagonal, fully on-screen, corners overlapping ───────── */
+body.share-result.share-answers #screen-comic-reveal.share-active {
+  transform-origin: center center;
+  transform: translate(-22vw, -15vh) scale(0.5) rotate(-4deg);
+  z-index: 7;
+}
+body.share-result.share-answers #share-comic-frame {
+  transform-origin: center center;
+  transform: translate(22vw, 15vh) scale(0.5) rotate(4deg);
+  z-index: 6;
+}
+
+/* Speech bubble injected into the share comic frame */
+.share-speech-bubble {
+  position: absolute;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.share-speech-bubble-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+.share-speech-bubble-text {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: clamp(10px, 1.4vh, 18px) clamp(14px, 1.8vw, 24px) clamp(36px, 4vh, 52px) clamp(14px, 1.8vw, 24px);
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  font-weight: 400;
+  font-size: clamp(11px, 1.1vw, 16px);
+  color: var(--text-primary);
+  line-height: 1.35;
+  text-align: left;
+  white-space: normal;
+}
+
+/* Keyword tags injected into the share comic frame */
+.share-keyword-tag {
+  position: absolute;
+  z-index: 20;
+  background: #fef5e4;
+  border: 2px solid #fed5d6;
+  border-radius: 0;
+  padding: 9px 18px;
+  font-family: 'PPNeueCorp', system-ui, sans-serif;
+  font-size: clamp(15px, 1.3vw, 20px);
+  font-weight: 500;
+  color: #6d1631;
+  white-space: nowrap;
+  pointer-events: none;
+  line-height: 1.4;
+}
+
+/* Caption bar injected into the share comic frame */
+.share-caption-bar {
+  position: absolute;
+  bottom: 1.6vh;
+  left: 2vw;
+  right: 2vw;
+  z-index: 20;
+  background: #fef5e4;
+  border: 2px solid #fed5d6;
+  border-radius: 0;
+  padding: 14px 28px;
+  font-family: 'PPNeueCorp', system-ui, sans-serif;
+  font-size: clamp(14px, 1.4vw, 20px);
+  font-weight: 500;
+  color: #6d1631;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* Share selector pills — bottom-center, flush to bottom edge */
+#share-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+body.share-mode #share-nav {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.share-dot {
+  padding: 14px 32px;
+  border-radius: 100px;
+  background: transparent;
+  border: 2px solid #6d1631;
+  color: #6d1631;
+  font-family: 'PPNeueCorp', system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.share-dot.selected {
+  background: #6d1631;
+  color: #fff;
+}
+
+.share-dot:hover:not(.selected) {
+  border-color: #a01e45;
+  color: #a01e45;
 }

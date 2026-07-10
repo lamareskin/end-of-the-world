@@ -3,7 +3,6 @@
   const screenStart       = document.getElementById("screen-start");
   const screenPreQuestion = document.getElementById("screen-prequestion");
   const screenQuestion    = document.getElementById("screen-question");
-  const screenResults     = document.getElementById("screen-results");
   const screenLoading     = document.getElementById("screen-loading");
   const screenComicReveal = document.getElementById("screen-comic-reveal");
 
@@ -19,6 +18,7 @@
   const btnDevQ6    = document.getElementById("btn-dev-q6");
   const btnDevComic    = document.getElementById("btn-dev-comic");
   const btnDevComicEnd = document.getElementById("btn-dev-comic-end");
+  const btnDevResult   = document.getElementById("btn-dev-result");
 
   const progressTracker = document.getElementById("progress-tracker");
   const questionText    = document.getElementById("question-text");
@@ -63,8 +63,9 @@
     ];
     const overlay = document.getElementById('q3-overlay');
     const box     = document.getElementById('q3-box');
-    let els     = [];
-    let current = -1;
+    let els          = [];
+    let current      = -1;
+    let _bubbleGrown = false;
 
     // small side-icons that appear next to the sidebar for non-active selections
     const sideIcons = []; // one per SLOT index, or null
@@ -116,15 +117,18 @@
       const chipRect   = chipEl.getBoundingClientRect();
       const bubble     = document.querySelector('.sb-bubble.sb-multi-select');
       const bubbleLeft = bubble ? bubble.getBoundingClientRect().left : chipRect.left;
-      wrap.style.top   = `${chipRect.top + chipRect.height / 2 - ICON_H / 2}px`;
+      wrap.style.top   = `${chipRect.top + chipRect.height / 2 - ICON_H / 2 + 12}px`;
       wrap.style.right = `${window.innerWidth - bubbleLeft - 40}px`;
       wrap.style.left  = 'auto';
     }
 
-    function _showSideIcon(i, chipEl) {
+    function _showSideIcon(i, chipEl, delayAnimate) {
       const wrap = _getOrCreateSideIcon(i);
-      _positionSideIcon(i, chipEl);
-      requestAnimationFrame(() => { wrap.style.transform = 'translateX(0)'; wrap.style.opacity = '1'; });
+      if (!delayAnimate) {
+        _positionSideIcon(i, chipEl);
+        requestAnimationFrame(() => { wrap.style.transform = 'translateX(0)'; wrap.style.opacity = '1'; });
+      }
+      // if delayAnimate, positioning and animation happen later via afterGrow callback
     }
 
     function _hideSideIcon(i) {
@@ -185,33 +189,55 @@
         });
       }
 
+      // Will the bubble grow this click?
+      const willGrow = all.length >= 2 && !_bubbleGrown;
+
       // side icons: show for all selected except the last
+      // If bubble is about to grow, delay animation until after grow completes
       SLOTS.forEach((_, i) => {
         if (allSet.has(i) && i !== lastIdx) {
-          _showSideIcon(i, chips ? chips[i] : null);
+          _showSideIcon(i, chips ? chips[i] : null, willGrow);
         } else {
           _hideSideIcon(i);
         }
       });
 
       // stretch active bubble when side icons appear (2+ selections)
-      _setBubbleStretch(all.length);
+      _setBubbleStretch(all.length, () => {
+        // Reposition all side icons at final chip positions, then animate in
+        SLOTS.forEach((_, i) => {
+          if (allSet.has(i) && i !== lastIdx && chips && chips[i]) {
+            _positionSideIcon(i, chips[i]);
+            const wrap = sideIcons[i];
+            if (wrap) requestAnimationFrame(() => { wrap.style.transform = 'translateX(0)'; wrap.style.opacity = '1'; });
+          }
+        });
+      });
     }
 
-    function _setBubbleStretch(count) {
-      const bubble   = document.querySelector('.sb-bubble.sb-multi-select');
-      const chipList = document.querySelector('.sb-chip-list');
-      if (!bubble) return;
-      if (count >= 2) {
-        bubble.style.flexGrow = '5';
-        if (chipList) chipList.style.gap = '36px';
-      } else {
-        bubble.style.flexGrow = '';
-        if (chipList) chipList.style.gap = '';
-      }
+    function _setBubbleStretch(count, afterGrow) {
+      requestAnimationFrame(() => {
+        const bubble   = document.querySelector('.sb-bubble.sb-multi-select');
+        const chipList = document.querySelector('.sb-chip-list');
+        if (!bubble) return;
+        if (count >= 2) {
+          const growing = !_bubbleGrown;
+          _bubbleGrown = true;
+          bubble.style.setProperty('--q3-bubble-grow', '2.5');
+          if (chipList) chipList.style.gap = '36px';
+          // If bubble just started growing, wait for transition; otherwise measure immediately
+          if (afterGrow) growing ? setTimeout(afterGrow, 460) : requestAnimationFrame(afterGrow);
+        } else {
+          _bubbleGrown = false;
+          bubble.style.removeProperty('--q3-bubble-grow');
+          if (chipList) chipList.style.gap = '';
+          if (afterGrow) requestAnimationFrame(afterGrow);
+        }
+      });
     }
 
     function hide() {
+      _bubbleGrown = false;
       if (current !== -1 && els[current]) {
         els[current].el.style.transition = 'transform 0.35s cubic-bezier(0.4,0,0.2,1)';
         els[current].el.style.transform  = els[current].hidden;
@@ -232,7 +258,7 @@
       setTimeout(() => { overlay.style.display = 'none'; }, 400);
     }
 
-    return { init, show, hide, cleanup };
+    return { init, show, hide, cleanup, resetStretch: () => _setBubbleStretch(0) };
   })();
 
   const q2Interaction = new Q2Interaction({
@@ -601,7 +627,7 @@
         onExpand:       () => q3Art.init(),
         onCollapse:     () => q3Art.cleanup(),
         onWordClick:    (i, selected, chips) => q3Art.show(selected, chips),
-        onAllDeselected: () => q3Art.hide(),
+        onAllDeselected: () => { q3Art.hide(); q3Art.resetStretch(); },
         onLeave:        () => q3Art.hide(),
       },
       // Q4 — who breaks the news
@@ -678,7 +704,7 @@
           { pink: 'doing something Reckless',   rest: '' },
           { pink: 'preparing for the show',     rest: '' },
         ],
-        defaultTitle: { pink: 'How', rest: ' will you spend your final day' },
+        defaultTitle: { pink: 'How', rest: ' will you spend your final day?' },
         onExpand:    () => q5Art.init(),
         onCollapse:  () => q5Art.cleanup(),
         onCentered:  (i) => q5Art.show(i),
@@ -721,11 +747,13 @@
     panelQ5:     document.getElementById('comic-panel-q5'),
     boxQ4:       document.getElementById('comic-panel-box-q4'),
     footboxEl:   document.getElementById('comic-footbox'),
-    continueEl:  document.getElementById('comic-continue'),
+    navBackEl:    document.getElementById('comic-nav-back'),
+    navForwardEl: document.getElementById('comic-nav-forward'),
     introHintEl: document.getElementById('comic-intro-hint'),
-    idleHintEl:  document.getElementById('comic-idle-hint'),
-    bubbleEl:     document.getElementById('comic-bubble'),
-    bubbleTextEl: document.getElementById('comic-bubble-text'),
+    bubbleEl:      document.getElementById('comic-bubble'),
+    bubbleTextEl:  document.getElementById('comic-bubble-text'),
+    bubbleLine1El: document.getElementById('comic-bubble-line1'),
+    bubbleLine2El: document.getElementById('comic-bubble-line2'),
     bubbleCharEl:     document.getElementById('comic-bubble-char'),
     bubbleCharTextEl: document.getElementById('comic-bubble-char-text'),
     shapeQ4El:   document.getElementById('comic-bubble-shape'),
@@ -737,8 +765,9 @@
     resultArtEl:      document.getElementById('comic-result-art'),
     resultDescEl:     document.getElementById('comic-result-desc'),
     toResultsEl:      document.getElementById('comic-to-results'),
-    onComplete:  () => { comicReveal.stop(); },
   });
+
+  const shareViewer = new ShareViewer({ comicReveal });
 
   const _dndMap   = { q1: q1Interaction, q4: q4Interaction, q3dnd: q3DndInteraction, q5dnd: q5DndInteraction };
   const _scrubMap = { q2: q2Interaction, q6: q6Interaction };
@@ -747,7 +776,7 @@
 
   // --- Screen transitions ---
   function showScreen(screen) {
-    [screenStart, screenPreQuestion, screenQuestion, screenResults, screenLoading, screenComicReveal].forEach(s => s.classList.remove("active"));
+    [screenStart, screenPreQuestion, screenQuestion, screenLoading, screenComicReveal].forEach(s => s.classList.remove("active"));
     screen.classList.add("active");
   }
 
@@ -877,17 +906,6 @@
     return tied[0];
   }
 
-  function _applyResult(key) {
-    const r = QUIZ_RESULTS[key];
-    document.getElementById('results-char-img').src     = r.char;
-    document.getElementById('results-art-img').src      = r.art;
-    document.getElementById('results-desc').textContent = r.desc;
-    screenResults.className = `screen result-${key}`;
-  }
-
-  function renderResults() {
-    _applyResult(computeResult());
-  }
 
   // ===================== PRE-COMIC TEXT SEQUENCE =====================
 
@@ -1042,7 +1060,11 @@
     qIntroBlame.innerHTML = q.introBig;
     qIntroBlame.style.fontSize = q.id === 3 ? 'clamp(52px, 8.5vw, 140px)' : '';
     qIntroBig.style.opacity = '1';
-    qIntroTitle.textContent = q.text;
+    const _introCfg = sidebarInteraction.questionConfigs?.[q.id];
+    const _introDt  = _introCfg?.defaultTitle;
+    qIntroTitle.textContent = _introDt
+      ? `${_introDt.prefix || ''}${_introDt.pink}${_introDt.rest}`
+      : q.text;
     qIntroTitle.style.opacity = '0';
     // Background layer only for Type B (art is visible underneath)
     if (!INTRO_TYPE_A.has(q.id)) {
@@ -1058,15 +1080,18 @@
       qIntroTitle.style.opacity = '1';
 
       if (INTRO_TYPE_A.has(q.id)) {
-        // Sidebar opens now, alongside the question title appearing
-        sidebarInteraction.expandFromArt();
-        sidebarInteraction.expand(q.id);
+        // Sidebar opens 1 second after the question title appears
+        setTimeout(() => {
+          sidebarInteraction.expandFromArt();
+          sidebarInteraction.expand(q.id);
+          // expand() may write bold HTML into titleEl — restore plain intro title
+          const cfg = sidebarInteraction.questionConfigs?.[q.id];
+          const dt = cfg?.defaultTitle;
+          qIntroTitle.textContent = dt ? `${dt.prefix || ''}${dt.pink}${dt.rest}` : q.text;
+        }, 1000);
 
-        if (q.id === 0 || q.id === 3) {
-          // Q1 & Q4: hover text goes to qIntroTitle; click handled in onEnter
-          sidebarInteraction.titleEl = qIntroTitle;
-        } else {
-          // Q3, Q4: first click anywhere dismisses the intro
+        if (q.id !== 0 && q.id !== 3) {
+          // Q3: first click anywhere dismisses the intro
           _introClickDismiss = () => _dismissIntro(q);
           document.addEventListener('click', _introClickDismiss, { once: true });
         }
@@ -1139,7 +1164,6 @@
       _clearIntro();
       // Prepping the legacy results screen must never block the transition to
       // the loading/comic flow, so isolate it.
-      try { renderResults(); } catch (err) { console.error('renderResults failed:', err); }
       sidebarInteraction.hide();
       _showComicProgressSidebar();
       showScreen(screenLoading);
@@ -1190,6 +1214,7 @@
   }
 
   btnRestart.addEventListener("click", () => {
+    shareViewer.close();
     _clearIntro();
     _hideHint();
     State.reset();
@@ -1203,6 +1228,8 @@
     _resetPreComicSequence();
     showScreen(screenStart);
   });
+
+  // Share button click is handled inside ShareViewer constructor
 
   // --- Dev shortcuts ---
   function _devGoTo(index) {
@@ -1234,6 +1261,16 @@
     });
   });
 
+  btnDevResult.addEventListener("click", async () => {
+    State.reset();
+    for (let i = 0; i < 5; i++) { State.setAnswer(0); State.goNext(); }
+    sidebarInteraction.hide();
+    screenComicReveal.classList.add('active');
+    showScreen(screenComicReveal);
+    await comicReveal.start(computeResult());
+    comicReveal.jumpToResult();
+  });
+
   btnDevComic.addEventListener("click", () => {
     State.reset();
     for (let i = 0; i < 5; i++) { State.setAnswer(0); State.goNext(); }
@@ -1247,23 +1284,6 @@
     });
   });
 
-  // --- Dev: results flipper ---
-  const RESULT_KEYS = ['nonchalant', 'clueless', 'knowitall', 'runaway'];
-  let devResultIndex = 0;
-
-  function _devShowResult(index) {
-    devResultIndex = (index + RESULT_KEYS.length) % RESULT_KEYS.length;
-    const key = RESULT_KEYS[devResultIndex];
-    _applyResult(key);
-    document.getElementById('flip-label').textContent = key;
-    document.getElementById('btn-restart').classList.add('visible');
-    document.getElementById('btn-share').classList.add('visible');
-    showScreen(screenResults);
-  }
-
-  document.getElementById('btn-dev-results').addEventListener('click', () => _devShowResult(devResultIndex));
-  document.getElementById('btn-flip-prev').addEventListener('click',   () => _devShowResult(devResultIndex - 1));
-  document.getElementById('btn-flip-next').addEventListener('click',   () => _devShowResult(devResultIndex + 1));
 
   // --- About toggle ---
   const aboutContainer = document.getElementById('about-container');

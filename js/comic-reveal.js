@@ -1,5 +1,5 @@
 class ComicRevealInteraction {
-  constructor({ screen, sceneEl, titleEl, titleBoxEl, inboxCaptionEl, characterEl, floatingCharEl, panelQ1, panelQ4, panelQ5, boxQ4, footboxEl, continueEl, introHintEl, idleHintEl, bubbleEl, bubbleTextEl, bubbleCharEl, bubbleCharTextEl, shapeQ4El, shapeCharEl, bgOverlayEl, globeEl, globeResultArtEl, resultCharEl, resultArtEl, resultDescEl, toResultsEl, onComplete }) {
+  constructor({ screen, sceneEl, titleEl, titleBoxEl, inboxCaptionEl, characterEl, floatingCharEl, panelQ1, panelQ4, panelQ5, boxQ4, footboxEl, navBackEl, navForwardEl, introHintEl, bubbleEl, bubbleTextEl, bubbleLine1El, bubbleLine2El, bubbleCharEl, bubbleCharTextEl, shapeQ4El, shapeCharEl, bgOverlayEl, globeEl, globeResultArtEl, resultCharEl, resultArtEl, resultDescEl, toResultsEl }) {
     this.screen      = screen;
     this.sceneEl     = sceneEl;
     this.titleEl     = titleEl;
@@ -12,11 +12,13 @@ class ComicRevealInteraction {
     this.panelQ5     = panelQ5;
     this.boxQ4       = boxQ4;
     this.footboxEl   = footboxEl;
-    this.continueEl  = continueEl;
+    this.navBackEl    = navBackEl;
+    this.navForwardEl = navForwardEl;
     this.introHintEl = introHintEl;
-    this.idleHintEl  = idleHintEl;
-    this.bubbleEl     = bubbleEl;
-    this.bubbleTextEl = bubbleTextEl;
+    this.bubbleEl      = bubbleEl;
+    this.bubbleTextEl  = bubbleTextEl;
+    this.bubbleLine1El = bubbleLine1El;
+    this.bubbleLine2El = bubbleLine2El;
     this.bubbleCharEl     = bubbleCharEl;
     this.bubbleCharTextEl = bubbleCharTextEl;
     this.shapeQ4El   = shapeQ4El;
@@ -28,12 +30,14 @@ class ComicRevealInteraction {
     this.resultArtEl       = resultArtEl;        // result art, bottom-right final position
     this.resultDescEl      = resultDescEl;       // description paragraph
     this.toResultsEl       = toResultsEl;        // "to the results" button
-    this.onComplete  = onComplete;
 
+    this._autoBubble      = false;
+    this._autoBubbleTimer = null;
     this._exitSequenceActive = false;
     this._exitResultsStarted = false;
     this._resultKey          = null;
     this._exitTimeouts       = [];
+    this.comicSceneSnapshot  = null;
 
     // Stages: -1 = pre-scroll intro hint -> 0 = character alone + title box ->
     // 1 = Q4 portrait enters near center, "X will tell you:" caption ->
@@ -41,21 +45,15 @@ class ComicRevealInteraction {
     // 3 = bubble changes to "it will be caused by X" (STILL centered) ->
     // 4 = characters shift RIGHT to their resting spot AND the Q1 image
     //     appears at top-left simultaneously, title recenters, caption clears ->
-    // 5 = beat -> 6 = zoom in + main character's bubble "that sounds X" +
-    // legs/face swap -> 7 = zoom back out (bubble hides) -> 8 = his bubble
-    // reappears "I will spend my last day X" -> 9 = Q5 image appears ->
-    // 10 = temporary "continue" trigger
-    this.STAGE_COUNT = 10;
+    // 5 = zoom in + main character's bubble "that sounds X" + legs/face swap ->
+    // 6 = zoom back out (bubble hides) -> 7 = his bubble reappears "I will
+    // spend my last day X" -> 8 = Q5 image appears ->
+    // 9 = temporary "continue" trigger
+    this.STAGE_COUNT = 8;
     this.stage        = -1;
     this._svgLoaded   = false;
     this._svgEl       = null;
-    this._wheelLocked = false;
-    // How long with no scroll input before the "keep scrolling ↓" idle hint
-    // fades in (only while -1 < stage < STAGE_COUNT — the intro already has
-    // its own persistent reminder, and the final stage already has
-    // .comic-continue for that job).
-    this.IDLE_MS      = 4000;
-    this._idleTimer    = null;
+    this._clickLocked = false;
 
     // How long after the Q3 zoom-in (stage 8) before his legs/face actually
     // swap to the reaction pose — was happening instantly alongside the zoom,
@@ -116,6 +114,21 @@ class ComicRevealInteraction {
     this.Q1_LEFT_OFFSET = [0.0106, 0.0106, 0.0106, 0.2789];
 
     this.Q4_FILES = ['popecomic.svg', 'billcomic.svg', 'concomic.svg', 'newscomic.svg'];
+    // Per-answer manual position/size overrides (each art's own crop/scale
+    // differs, so these are tuned by hand rather than derived) — set at
+    // the user's reference screen size, same convention as other hardcoded
+    // vw/vh values in this file. null = not tuned yet, falls back to the
+    // shared computed layout below.
+    // Shrunk ~6% from the user's original hand-tuned values, scaling from
+    // each one's bottom-right corner (so the right/bottom edges — already
+    // correct — stay put, and the leftmost/topmost point pulls in, fixing
+    // both "too big" and "left point clipped behind other panels").
+    this.Q4_OVERRIDE = [
+      { left: '59.593vw', width: '31.96vw',   top: '9.2vh',    height: '84.6vh'  }, // pope
+      { left: '59.713vw', width: '33.84vw',   top: '14.1vh',   height: '79.9vh'  }, // bill
+      { left: '63.28vw',  width: '35.72vw',   top: '10.088vh', height: '79.712vh' }, // conspiracy
+      { left: '65.676vw', width: '26.262vw',  top: '11.788vh', height: '79.712vh' }, // news
+    ];
 
     this.Q3_LEGS    = ['stresslegs', 'fearlegs', 'deniallegs', 'relieflegs', 'shocklegs'];
     this.Q3_FACE    = ['stressface', 'fearface', 'normal_face', 'reliefface', 'shockface']; // Denial reuses the default face
@@ -124,13 +137,37 @@ class ComicRevealInteraction {
     this.Q5_FILES   = ['doomcomic.svg', 'naturecomic.svg', 'lovedcomic.svg', 'recklesscomic.svg', 'showcomic.svg'];
     this.Q5_CAPTION = ['doomscrolling', 'with Nature', 'with loved ones', 'doing something Reckless', 'preparing for the show'];
     this.Q5_ASPECT  = ['1131.13 / 739.07', '1131.13 / 764.44', '1131.13 / 739.07', '1351.02 / 749.71', '1137.62 / 760.22'];
+    // Same idea as Q1_LEFT_OFFSET/Q1_TOP_OFFSET: each file's clip mask is
+    // inset a different amount from its own canvas's edges, measured as
+    // (X or Y of the clip polygon / viewBox width) * 8. "doom" (index 0) is
+    // flush/reference. recklesscomic's canvas is unusually wide (1351 vs
+    // ~1131-1137 for the others) with gaps on BOTH left and right of the
+    // visible art (not just left) — Q5_RIGHT_OFFSET captures that so the
+    // scale factor accounts for the full inset, not just one side.
+    this.Q5_LEFT_OFFSET  = [0.0106, 0.0106, 0.0106, 0.5193, 0.1195];
+    this.Q5_RIGHT_OFFSET = [7.9894, 7.9894, 7.9894, 7.2055, 7.8805];
+    this.Q5_TOP_OFFSET   = [0.0144, 0.0144, 0.0144, 0.0121, 0.1515];
     // recklesscomic's box is inset 6.5% of its own width from the left, showcomic
     // ~1.9% — both were throwing off left-edge alignment with Q1.
     this.Q5_LEFT_OFFSET = [0.0106, 0.0106, 0.0106, 0.5193, 0.1195];
 
-    this._onWheel = this._onWheel.bind(this);
+    // Speech bubble SVG files — small/medium/large by text length.
+    // Tail is at bottom-right (designed for a right-side speaker / Q4).
+    // The main character's bubble img has .bubble-svg-img-flip (scaleX(-1))
+    // applied in CSS so the tail mirrors to point toward him on the left.
+    this.BUBBLE_SVGS = [
+      { file: 'speechbubble-27.svg', maxChars: 25  }, // small
+      { file: 'speechbubble-26.svg', maxChars: 45  }, // medium
+      { file: 'speechbubble-25.svg', maxChars: Infinity }, // large
+    ];
+    this.bubbleImgEl     = document.getElementById('comic-bubble-img');
+    this.bubbleCharImgEl = document.getElementById('comic-bubble-char-img');
+    this.causeTextEl     = document.getElementById('comic-cause-text');
+
     this._onResize = this._onResize.bind(this);
-    this.continueEl.addEventListener('click', () => { if (this.onComplete) this.onComplete(); });
+    // Nav arrows are the only way to move forward/backward through the comic.
+    this.navForwardEl.addEventListener('click', () => this._navigate(1));
+    this.navBackEl.addEventListener('click', () => this._navigate(-1));
     if (this.toResultsEl) this.toResultsEl.addEventListener('click', () => this._onToResults());
 
     // Dev preview: click any panel to cycle through its possible answers, so all
@@ -138,6 +175,10 @@ class ComicRevealInteraction {
     this.panelQ1.addEventListener('click', () => this._cyclePanel(0, this.Q1_FILES.length));
     this.panelQ4.addEventListener('click', () => this._cyclePanel(3, this.Q4_FILES.length));
     this.panelQ5.addEventListener('click', () => this._cyclePanel(4, this.Q5_FILES.length));
+  }
+
+  _pickBubbleSvg(text) {
+    return this.BUBBLE_SVGS.find(b => text.length <= b.maxChars).file;
   }
 
   _cyclePanel(qIndex, count) {
@@ -184,8 +225,14 @@ class ComicRevealInteraction {
     await this._ensureCharacterSvg();
     this.stage = 0; // skip the "scroll down" intro hint — character appears immediately
     this._render(false);
-    this.screen.addEventListener('wheel', this._onWheel, { passive: false });
     window.addEventListener('resize', this._onResize);
+    this.navBackEl.classList.add('visible');
+    this.navForwardEl.classList.add('visible');
+    // Auto-show the bubble after the slide-in animation settles (~2s).
+    this._autoBubbleTimer = setTimeout(() => {
+      this._autoBubble = true;
+      this._render();
+    }, 2200);
   }
 
   skipToEnd() {
@@ -195,11 +242,35 @@ class ComicRevealInteraction {
     this.screen.scrollTop = this.screen.scrollHeight;
   }
 
+  jumpToResult() {
+    this.skipToEnd();
+    this.navBackEl.classList.remove('visible');
+    this.navForwardEl.classList.remove('visible');
+    this._exitSequenceActive = true;
+    this._exitResultsStarted = true;
+    // Pre-load result assets
+    if (this._resultKey && typeof QUIZ_RESULTS !== 'undefined') {
+      const r = QUIZ_RESULTS[this._resultKey];
+      if (r) {
+        this.resultArtEl.src          = r.art;
+        this.resultCharEl.src         = r.char;
+        this.resultDescEl.textContent = r.desc;
+      }
+    }
+    if (this._resultKey) this.screen.classList.add('result-' + this._resultKey);
+    this.comicSceneSnapshot = this.sceneEl.cloneNode(true);
+    // Skip all exit animations — hide comic chrome, go straight to result page
+    this.screen.classList.add('exiting');
+    this.bgOverlayEl.classList.add('gradient-in', 'gradient-warm');
+    this.characterEl.style.display = 'none';
+    if (this.floatingCharEl) this.floatingCharEl.classList.add('char-gone');
+    this._revealResults();
+  }
+
   stop() {
-    this.screen.removeEventListener('wheel', this._onWheel);
     window.removeEventListener('resize', this._onResize);
     clearTimeout(this._resizeTimer);
-    clearTimeout(this._idleTimer);
+    clearTimeout(this._autoBubbleTimer);
     clearTimeout(this._legsRevealTimer);
     clearTimeout(this._zoomSettleTimer);
     this._exitTimeouts.forEach(t => clearTimeout(t));
@@ -214,7 +285,7 @@ class ComicRevealInteraction {
     clearTimeout(this._resizeTimer);
     this._resizeTimer = setTimeout(() => {
       this._layoutQ1Q5();
-      if (this.stage >= 1 && this.stage < 4) this._layoutQ4Centered();
+      if (this.stage >= 0 && this.stage < 3) this._layoutQ4Centered();
       this._layoutCharacterBubble();
       this._updateBubbleShapes();
     }, 100);
@@ -223,6 +294,8 @@ class ComicRevealInteraction {
   reset() {
     this.stop();
     this.stage = -1;
+    this._autoBubble          = false;
+    this._autoBubbleTimer     = null;
     this._legsRevealTimer     = null;
     this._legsRevealed        = false;
     this._q3Revealed          = 0;
@@ -231,6 +304,7 @@ class ComicRevealInteraction {
     this._exitSequenceActive  = false;
     this._exitResultsStarted  = false;
     this._resultKey           = null;
+    this.comicSceneSnapshot   = null;
     // Clean up exit sequence DOM state
     this.screen.classList.remove('exiting',
       'result-nonchalant', 'result-clueless', 'result-knowitall', 'result-runaway');
@@ -242,6 +316,8 @@ class ComicRevealInteraction {
     // Restore the real character (hidden via inline style when the
     // floatingperson.svg pose took over, see _runExitSequence) and reset that
     // floating pose element back to its own hidden default state.
+    this.screen.style.removeProperty('--char-w');
+    this.screen.style.removeProperty('--char-left-rest');
     this.characterEl.style.display = '';
     if (this.floatingCharEl) {
       this.floatingCharEl.classList.remove('floating', 'char-shrink', 'char-gone');
@@ -253,76 +329,65 @@ class ComicRevealInteraction {
     if (this.toResultsEl) this.toResultsEl.classList.remove('visible');
     document.getElementById('btn-restart').classList.remove('visible');
     document.getElementById('btn-share').classList.remove('visible');
-    this.idleHintEl.classList.remove('visible');
+    this.navBackEl.classList.remove('visible');
+    this.navForwardEl.classList.remove('visible');
     if (this._svgLoaded) this._setGroups(this.DEFAULT_GROUPS);
     this._render(false);
   }
 
-  // Restarts the "no input for IDLE_MS" countdown; called on every wheel
-  // event (whether or not it changed stage) and once the countdown fires,
-  // shows the idle hint — but only mid-scroll (stage -1 already has its own
-  // persistent reminder, stage STAGE_COUNT already has .comic-continue).
-  _armIdleTimer() {
-    clearTimeout(this._idleTimer);
-    if (this.stage >= 0 && this.stage < this.STAGE_COUNT) {
-      this._idleTimer = setTimeout(() => this.idleHintEl.classList.add('visible'), this.IDLE_MS);
-    }
-  }
-
-  _onWheel(e) {
-    e.preventDefault();
-    clearTimeout(this._idleTimer);
-    this.idleHintEl.classList.remove('visible');
-
-    // During the exit sequence, scrolling does nothing — the reveal is driven
-    // by the "to the results" button (see _onToResults), not the wheel.
+  // Driven by the two nav arrow buttons — dir=1 (forward) or dir=-1 (back).
+  // Replaces the old scroll/whole-screen-click interaction; same pace as
+  // before (one click = one stage), now with an actual back control.
+  _navigate(dir) {
+    // During the exit sequence, the nav arrows are hidden (see
+    // _runExitSequence) — the reveal is driven by the "to the results"
+    // button (see _onToResults) instead.
     if (this._exitSequenceActive) return;
+    if (this._clickLocked) return;
 
-    if (!this._wheelLocked && Math.abs(e.deltaY) >= 30) {
-      const dir = e.deltaY > 0 ? 1 : -1;
+    // One more forward step past the last stage kicks off the exit animation.
+    if (dir > 0 && this.stage === this.STAGE_COUNT) {
+      this._clickLocked = true;
+      setTimeout(() => { this._clickLocked = false; }, 650);
+      this._runExitSequence();
+      return;
+    }
 
-      // One more scroll past the last stage kicks off the exit animation.
-      if (this.stage === this.STAGE_COUNT && dir > 0) {
-        this._wheelLocked = true;
-        setTimeout(() => { this._wheelLocked = false; }, 650);
-        this._runExitSequence();
+    // Q3 multi-emotion: while on the zoomed-in beat with more than one
+    // chosen emotion, forward/back steps through them (bubble text
+    // REPLACED, pose swapped) before the stage itself advances/retreats.
+    const q3list = this._getQ3List();
+    if (this.stage === 4 && !this._zoomSettled) return;
+    if (this.stage === 4 && q3list.length > 1) {
+      if (dir > 0 && this._q3Revealed < q3list.length) {
+        this._q3Revealed++;
+        this._render();
+        this._clickLocked = true;
+        setTimeout(() => { this._clickLocked = false; }, 650);
         return;
       }
-
-      // Q3 multi-emotion: while on the zoomed-in beat with more than one chosen
-      // emotion, each scroll steps through them (forward reveals the next,
-      // backward steps one off) BEFORE the stage itself changes. The stage only
-      // moves on once they're all shown (forward) or all stepped off (backward).
-      const q3list = this._getQ3List();
-      if (this.stage === 6 && q3list.length > 1) {
-        if (dir > 0 && this._q3Revealed < q3list.length) {
-          this._q3Revealed++;
-          this._render();
-          this._wheelLocked = true;
-          setTimeout(() => { this._wheelLocked = false; }, 650);
-          this._armIdleTimer();
-          return;
-        }
-        if (dir < 0 && this._q3Revealed > 1) {
-          this._q3Revealed--;
-          this._render();
-          this._wheelLocked = true;
-          setTimeout(() => { this._wheelLocked = false; }, 650);
-          this._armIdleTimer();
-          return;
-        }
-      }
-
-      const next = this.stage + dir;
-      if (next >= -1 && next <= this.STAGE_COUNT) {
-        this._wheelLocked = true;
-        this.stage = next;
-        this._render(true);
-        setTimeout(() => { this._wheelLocked = false; }, 650);
+      if (dir < 0 && this._q3Revealed > 1) {
+        this._q3Revealed--;
+        this._render();
+        this._clickLocked = true;
+        setTimeout(() => { this._clickLocked = false; }, 650);
+        return;
       }
     }
 
-    this._armIdleTimer();
+    let next = this.stage + dir;
+    // Stage 6 has no visible content — skip it in both directions.
+    if (next === 6) next += dir;
+    if (next >= -1 && next <= this.STAGE_COUNT) {
+      this._clickLocked = true;
+      const prevStage = this.stage;
+      this.stage = next;
+      if (next === -1) this._autoBubble = false;
+      this._render(true);
+      // Zoom-out transition: lock shorter so next click isn't eaten
+      const lockMs = (prevStage === 4 && next !== 4) ? 350 : 650;
+      setTimeout(() => { this._clickLocked = false; }, lockMs);
+    }
   }
 
   // Q3 answer normalised to an array of emotion indices (see constructor).
@@ -351,8 +416,13 @@ class ComicRevealInteraction {
     // Stamp result class for per-result sizing overrides.
     if (this._resultKey) this.screen.classList.add('result-' + this._resultKey);
 
+    // Capture the comic scene before panels slide away — used by the share viewer
+    // comic slide. cloneNode(true) preserves all inline style transforms set by JS.
+    this.comicSceneSnapshot = this.sceneEl.cloneNode(true);
+
     // Slide panels/chrome off top; hide bubbles.
-    this.continueEl.classList.remove('visible');
+    this.navBackEl.classList.remove('visible');
+    this.navForwardEl.classList.remove('visible');
     this.screen.classList.add('exiting');
     this.bgOverlayEl.classList.add('gradient-in');
 
@@ -454,33 +524,77 @@ class ComicRevealInteraction {
     // nudges slightly left at stage 1-2 to share center space with Q4,
     // then shifts right to its resting spot at stage 3.
     this.characterEl.classList.toggle('grown', this.stage >= 0);
-    this.characterEl.classList.toggle('nudged', this.stage >= 1 && this.stage <= 3);
-    this.characterEl.classList.toggle('placed', this.stage >= 4);
+    this.characterEl.classList.toggle('nudged', this.stage >= 0 && this.stage <= 2);
+    this.characterEl.classList.toggle('placed', this.stage >= 3);
 
     // Q4's speech bubble — both lines are spoken while the characters are
     // still centered together: "the world will end" (stage 2), then "it will
     // be caused by X" (stage 3). The bubble is cleared at stage 4 so it's
     // hidden during the shift-right move (which now happens alongside Q1).
-    let bubbleText = '';
-    if (this.stage === 2 && q4 !== null) {
-      bubbleText = 'the world will end';
-    } else if (this.stage === 3 && q1 !== null) {
-      bubbleText = `it will be caused by ${this.Q1_CAPTION[q1]}`;
+    const showBubble = (this.stage === 0 && this._autoBubble && q4 !== null) || (this.stage === 1 && q4 !== null);
+    const showLine2  = this.stage >= 1;
+    const BUBBLE_LINE1 = 'The world will end,';
+    const Q4_LINE2 = [
+      { text: 'and the time for repentance has passed',          html: 'and the time for<br>repentance has passed' },       // pope
+      { text: 'and I have made a lot of money betting on it',    html: 'and I have made a lot<br>of money betting on it' }, // bill
+      { text: 'and nobody listened to me!',                      html: 'and nobody listened<br>to me!' },                    // conspiracy
+      { text: 'I repeat, the World will end',                    html: 'I repeat, the World<br>will end' },                 // news
+    ];
+    const line2Data   = q4 !== null ? Q4_LINE2[q4] : { text: '', html: '' };
+    const BUBBLE_LINE2 = line2Data.text;
+    const BUBBLE_FULL  = BUBBLE_LINE1 + '\n' + BUBBLE_LINE2;
+    if (showBubble) {
+      this.bubbleLine1El.textContent = BUBBLE_LINE1;
+      this.bubbleLine2El.innerHTML = line2Data.html;
+      this.bubbleLine2El.classList.toggle('bubble-line2-hidden', !showLine2);
+      // Always size the SVG for the full sentence so the bubble never resizes.
+      this.bubbleImgEl.src = this._pickBubbleSvg(BUBBLE_FULL);
+      this.bubbleEl.style.transition = '';
+      this.bubbleEl.classList.add('visible');
+    } else {
+      this.bubbleLine1El.textContent = '';
+      this.bubbleLine2El.textContent = '';
+      this.bubbleEl.style.transition = 'none';
+      this.bubbleEl.classList.remove('visible');
     }
-    this.bubbleTextEl.textContent = bubbleText;
-    this.bubbleEl.classList.toggle('visible', bubbleText !== '');
+
+    // Full-screen text: stage 2 = "it will be caused by X", stage 7 = "You will spend your final day X".
+    let fullScreenText = '';
+    if (this.stage === 2 && q1 !== null)
+      fullScreenText = `it will be caused by ${this.Q1_CAPTION[q1]}`;
+    else if (this.stage === 7 && q5 !== null)
+      fullScreenText = `You will spend your final day ${this.Q5_CAPTION[q5]}`;
+    this.causeTextEl.textContent = fullScreenText;
+    this.causeTextEl.classList.toggle('visible', fullScreenText !== '');
+    const hideForFullScreen = this.stage === 2 || this.stage === 7;
+    this.characterEl.style.transition = hideForFullScreen ? 'none' : '';
+    this.characterEl.style.opacity    = hideForFullScreen ? '0' : '';
+    this.panelQ4.style.transition     = hideForFullScreen ? 'none' : '';
+    this.panelQ4.style.opacity        = hideForFullScreen ? '0' : '';
+    // Stage 7 also hides all comic panels so only the text + arrows remain.
+    const hideAllPanels = this.stage === 7;
+    this.panelQ1.style.transition  = hideAllPanels ? 'none' : '';
+    this.panelQ1.style.opacity     = hideAllPanels ? '0' : '';
+    this.boxQ4.style.transition    = hideAllPanels ? 'none' : '';
+    this.boxQ4.style.opacity       = hideAllPanels ? '0' : '';
+    this.panelQ5.style.transition  = hideAllPanels ? 'none' : '';
+    this.panelQ5.style.opacity     = hideAllPanels ? '0' : '';
+    if (this.footboxEl) {
+      this.footboxEl.style.transition = hideAllPanels ? 'none' : '';
+      this.footboxEl.style.opacity    = hideAllPanels ? '0' : '';
+    }
 
     // Q4 panel — fades in near center at stage 1 (positioned by
     // _layoutQ4Centered), then shifts right with pink box at stage 4
     // (positioned by _layoutQ1Q5 from that point on).
-    const showQ4 = this.stage >= 1 && q4 !== null;
+    const showQ4 = this.stage >= 0 && q4 !== null;
     if (showQ4) this.panelQ4.src = this.Q4_FILES[q4];
     this.panelQ4.classList.toggle('visible', showQ4);
-    // Pink box only appears once they shift right at stage 4.
-    this.boxQ4.classList.toggle('visible', this.stage >= 4 && showQ4);
+    // Pink box only appears once they shift right at stage 3.
+    this.boxQ4.classList.toggle('visible', this.stage >= 3 && showQ4);
 
-    // Q1 panel — top-left, appears at stage 4, together with the shift-right.
-    const showQ1 = this.stage >= 4 && q1 !== null;
+    // Q1 panel — top-left, appears at stage 3, together with the shift-right.
+    const showQ1 = this.stage >= 3 && q1 !== null;
     if (showQ1) {
       this.panelQ1.src = this.Q1_FILES[q1];
       this.panelQ1.style.aspectRatio = this.Q1_ASPECT[q1];
@@ -492,7 +606,7 @@ class ComicRevealInteraction {
     // Computed BEFORE the char bubble below because the bubble's own position
     // depends on it settling first (see _zoomSettled).
     const wasZoomed = this.sceneEl.classList.contains('zoomed');
-    const zoomedNow = this.stage === 6;
+    const zoomedNow = this.stage === 4;
     this.sceneEl.classList.toggle('zoomed', zoomedNow);
     const zoomingOut = wasZoomed && !zoomedNow;
 
@@ -517,35 +631,36 @@ class ComicRevealInteraction {
       clearTimeout(this._zoomSettleTimer);
     }
 
-    // Main character's own speech bubble — the Q3 reaction at stage 6 shows
+    // Main character's own speech bubble — the Q3 reaction at stage 5 shows
     // ONE emotion at a time (replaced, not stacked): the first reads "that
     // sounds stressful", each subsequent scroll replaces it with "and scary"
-    // etc. Hides for the zoom out (stage 7), then reappears with "I will spend
-    // my last day X" from stage 8 on.
+    // etc. Hides for the zoom out (stage 6), then reappears with "I will spend
+    // my last day X" from stage 7 on.
     let charBubbleText = '';
-    if (this.stage === 6 && q3list.length > 0 && this._zoomSettled) {
+    if (this.stage === 4 && q3list.length > 0 && this._zoomSettled) {
       const shown = Math.min(Math.max(this._q3Revealed, 1), q3list.length);
       const idx   = q3list[shown - 1];
       charBubbleText = shown === 1
-        ? `that sounds ${this.Q3_CAPTION[idx]}`
-        : `and ${this.Q3_CAPTION[idx]}`;
-    } else if (this.stage >= 8 && q5 !== null) {
-      charBubbleText = `I will spend my last day ${this.Q5_CAPTION[q5]}`;
+        ? `that sounds\n${this.Q3_CAPTION[idx]}`
+        : `and\n${this.Q3_CAPTION[idx]}`;
     }
-    this.bubbleCharTextEl.textContent = charBubbleText;
+    this.bubbleCharTextEl.innerHTML = charBubbleText.replace('\n', '<br>');
+    if (!charBubbleText) this.bubbleCharEl.style.transition = 'none';
+    else this.bubbleCharEl.style.transition = '';
     this.bubbleCharEl.classList.toggle('visible', charBubbleText !== '');
+    if (charBubbleText) this.bubbleCharImgEl.src = this._pickBubbleSvg(charBubbleText);
 
     // Ground panel behind his legs — appears right at the zoom-in (not
     // delayed like the leg swap below) and then persists for the rest of the
-    // scene, even once the camera zooms back out at stage 8.
-    if (this.footboxEl) this.footboxEl.classList.toggle('visible', this.stage >= 6 && q3list.length > 0);
+    // scene, even once the camera zooms back out at stage 7.
+    if (this.footboxEl) this.footboxEl.classList.toggle('visible', this.stage >= 4 && q3list.length > 0);
 
-    // Q3 legs/face swap — scroll-driven (see _onWheel). On first reaching stage
-    // 6 the first chosen emotion shows (_q3Revealed 0 -> 1); each forward scroll
+    // Q3 legs/face swap — click-driven (see _navigate). On first reaching stage
+    // 5 the first chosen emotion shows (_q3Revealed 0 -> 1); each click
     // steps to the next. The pose always reflects the currently-shown emotion
     // and, once all are stepped through, persists through the later stages
-    // (zoom out, Q5, ...). Dropping below stage 6 resets the count.
-    if (this.stage >= 6 && q3list.length > 0) {
+    // (zoom out, Q5, ...). Dropping below stage 5 resets the count.
+    if (this.stage >= 4 && q3list.length > 0) {
       if (this._q3Revealed === 0) this._q3Revealed = 1;
       const shown  = Math.min(Math.max(this._q3Revealed, 1), q3list.length);
       const latest = q3list[shown - 1];
@@ -555,9 +670,9 @@ class ComicRevealInteraction {
       this._setGroups(this.DEFAULT_GROUPS);
     }
 
-    // Q5 panel — bottom-left, appears at stage 9 (one stage after the char
-    // bubble text at stage 8) and stays. Anchored directly on the bottom margin.
-    const showQ5 = this.stage >= 9 && q5 !== null;
+    // Q5 panel — bottom-left, appears at stage 8 (one stage after the char
+    // bubble text at stage 7) and stays. Anchored directly on the bottom margin.
+    const showQ5 = this.stage >= 8 && q5 !== null;
     if (showQ5) {
       this.panelQ5.src = this.Q5_FILES[q5];
       this.panelQ5.style.aspectRatio = this.Q5_ASPECT[q5];
@@ -574,7 +689,8 @@ class ComicRevealInteraction {
     if (showQ1 || showQ4 || showQ5) this._layoutQ1Q5();
     // At stages 1-3, Q4 is in its centered position — _layoutQ1Q5 skips Q4
     // there, so a separate call positions it.
-    if (showQ4 && this.stage < 4) this._layoutQ4Centered();
+    if (showQ4 && this.stage < 3) this._layoutQ4Centered();
+    else this.characterEl.style.left = ''; // clear centered override once placed
     if (this.stage >= 1) this._layoutCharacterBubble();
     // Skip footbox layout when the zoom-out transition just started — at that
     // moment getBoundingClientRect() still returns 1.7× zoomed measurements,
@@ -586,9 +702,6 @@ class ComicRevealInteraction {
     // opacity transitions on these elements, not left/top/width), so it's
     // safe to measure real on-screen positions for the bubble shapes here.
     this._updateBubbleShapes();
-
-    // Temporary continue hint at the last stage
-    this.continueEl.classList.toggle('visible', this.stage === this.STAGE_COUNT);
   }
 
   // Draws each visible bubble as ONE continuous SVG shape — an ellipse
@@ -686,10 +799,13 @@ class ComicRevealInteraction {
 
   // Positions the main character's bubble beside his head once he's in his
   // resting spot (stage >= 1). Fixed CSS percentages couldn't track his actual
-  // on-screen head position across screen sizes. Sits to his RIGHT, raised
-  // well above head height so its tail — anchored on the bubble's own left
-  // side, see _updateBubbleShapes — has room to slope back down to his head
-  // instead of running flat/upward into it.
+  // on-screen head position across screen sizes. Sits to his LEFT (used to
+  // be his right, but the Q4 characters now extend further left with their
+  // manual per-answer overrides — see Q4_OVERRIDE — and would sit on top of
+  // /behind a right-side bubble either way, hiding the text). The tail-aim
+  // math in _updateBubbleShapes targets the character dynamically via
+  // atan2, so it points the right way regardless of which side the bubble
+  // is on — no changes needed there.
   _layoutCharacterBubble() {
     if (!this.characterEl.classList.contains('placed')) return;
 
@@ -705,12 +821,12 @@ class ComicRevealInteraction {
     // Kept fairly narrow on purpose — long lines (e.g. "I will spend my last
     // day doing something Reckless") should wrap to two lines rather than
     // stretching the bubble into a wide pill.
-    const width = char.width * 0.6;
-    // Negative: overlaps back onto his shoulder so the bubble reads close
-    // beside him instead of floating off to the right.
-    const gap = -char.width * 0.22;
-    const left = Math.min(vw - ph - width, char.left + char.width + gap);
-    const top = headY - char.height * 0.1;
+    const width = vw * 0.38;
+    // Bubble sits to the RIGHT of the character — the flipped SVG tail
+    // (scaleX(-1) on .bubble-svg-img-flip) points left back toward his face.
+    const overlap = char.width * 0.12; // slight overlap onto his shoulder
+    const left = Math.min(char.right - overlap, vw - width - ph) - vw * 0.13;
+    const top = headY - char.height * 0.13;
 
     this.bubbleCharEl.style.left = toVw(left);
     this.bubbleCharEl.style.width = toVw(width);
@@ -722,6 +838,7 @@ class ComicRevealInteraction {
   // roughly in the center of the screen together. At stage 4, _layoutQ1Q5
   // takes over and the CSS transition on left/width animates the slide right.
   _layoutQ4Centered() {
+    const q4 = State.getAnswer(3);
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const toVw = (px) => `${(px / vw) * 100}vw`;
@@ -729,38 +846,69 @@ class ComicRevealInteraction {
 
     const ph = vw * 0.02;
     const comicGap = 19;
-    const comicPv = 24;
     const col = (vw - 2 * ph - 11 * comicGap) / 12;
-    const row = (vh - 2 * comicPv) / 12;
+    const naturalUnit = col + comicGap;
 
-    const BOX_HEIGHT_VH = 0.848;
-    const boxHeight = vh * BOX_HEIGHT_VH;
+    // Use the exact same character size as the resting state so nothing
+    // resizes when it later shifts right.
+    const charW    = Math.min(3.3 * naturalUnit, 0.74 * vh * 470.53 / 771.45);
+    // Resting left (mirrors --char-left-rest / _layoutQ1Q5 at s=1).
+    const restLeft = ph + 5.05 * naturalUnit;
+    // Nudged left (mirrors .comic-character.nudged CSS rule).
+    const nudgedLeft = vw / 2 - charW / 2 - naturalUnit;
+    // Apply that same shift to Q4 so relative size/distance is identical.
+    // Extra gap only in the centered intro view — widens the space between the
+    // two characters without affecting resting positions on the actual comic page.
+    // Per-character: pope/bill keep the default; con and news get more breathing room.
+    const CENTERED_EXTRA_GAPS = [0.5, 0.5, 1.1, 1.1]; // pope, bill, con, news
+    const CENTERED_EXTRA_GAP = naturalUnit * (q4 !== null ? CENTERED_EXTRA_GAPS[q4] : 0.5);
+    const shift = nudgedLeft - restLeft + CENTERED_EXTRA_GAP;
 
-    // Match the resting width (3.75 cols, same as _layoutQ1Q5 at s=1)
-    // so Q4 doesn't visibly resize when it shifts right at stage 3.
-    const q4Width = 3.75 * (col + comicGap);
+    const q4Override = q4 !== null ? this.Q4_OVERRIDE[q4] : null;
+    let q4Left, q4Width, q4Top, q4Height;
+    if (q4Override) {
+      q4Width  = parseFloat(q4Override.width)  / 100 * vw;
+      q4Top    = q4Override.top;    // keep original vh value
+      q4Height = q4Override.height; // keep original vh value
+      q4Left   = parseFloat(q4Override.left) / 100 * vw + shift;
+    } else {
+      q4Width  = 3.75 * naturalUnit;
+      q4Top    = '5.8vh';
+      q4Height = toVh(vh * 0.848);
+      q4Left   = restLeft + charW + col * 0.15 + shift;
+    }
 
-    // Center the pair on screen. The character (nudged left by 1 col from
-    // its own center) starts at: 50%vw - charW/2 - 1*(col+gap).
-    const charW    = 3.6 * (col + comicGap);
-    const charLeft = vw / 2 - charW / 2 - (col + comicGap);
-    const GAP_BETWEEN = col * 0.15;
-    // Q4 sits to the RIGHT of the character
-    const q4Left = charLeft + charW + GAP_BETWEEN;
+    // Bubble — same proportions as before, anchored to the shifted Q4 left.
+    // Fixed vw width so text always fits regardless of q4Width.
+    // Position so the tail (at the bubble's right side) sits against the pope,
+    // making it visually clear who is speaking.
+    const bubbleWidth = vw * 0.40;
+    const q4TopPx     = parseFloat(q4Top) / 100 * vh;
+    // Per-character bubble nudges [pope, bill, con, news] — left in vw%, top in vh%.
+    const BUBBLE_LEFT_NUDGE = [0,    0,   -8,   -8  ]; // vw%
+    const BUBBLE_TOP_NUDGE  = [0,   -9,   -6,   -6  ]; // vh%
+    const leftNudge = q4 !== null ? BUBBLE_LEFT_NUDGE[q4] / 100 * vw : 0;
+    const topNudge  = q4 !== null ? BUBBLE_TOP_NUDGE[q4]  / 100 * vh : 0;
+    const bubbleLeft = q4Left + q4Width * 0.05 + leftNudge;
+    const bubbleTop  = q4TopPx + vh * 0.03 + topNudge;
 
-    // Bubble sits between the character and Q4 (to the left of Q4)
-    const BUBBLE_FACE_Y = 0.14;
-    const bubbleWidth = q4Width * 0.55;
-    const bubbleLeft  = q4Left - bubbleWidth * 0.7;
-    const q4Top = vh * 0.058;
-    const bubbleTop = q4Top + boxHeight * BUBBLE_FACE_Y;
-
-    this.panelQ4.style.left   = toVw(q4Left);
+    // Re-center the pair for characters that have extra gap.
+    // The nudged CSS puts the main character at 50% - charW/2 - 0.4*naturalUnit.
+    const mainLeft   = vw / 2 - charW / 2 - naturalUnit * 0.4;
+    const mainCenter = mainLeft + charW / 2;
+    const q4Center   = q4Left + q4Width / 2;
+    const pairCenter = (mainCenter + q4Center) / 2;
+    // Per-character rightward shift of the whole pair after centering [pope, bill, con, news].
+    const PAIR_OFFSET = [0, 0, 4, 4]; // vw%
+    const pairShift = q4 !== null ? PAIR_OFFSET[q4] / 100 * vw : 0;
+    const adj        = vw / 2 - pairCenter + pairShift;
+    this.characterEl.style.left = toVw(mainLeft + adj);
+    this.panelQ4.style.left   = toVw(q4Left + adj);
     this.panelQ4.style.width  = toVw(q4Width);
-    this.panelQ4.style.top    = '5.8vh';
-    this.panelQ4.style.height = toVh(boxHeight);
+    this.panelQ4.style.top    = q4Top;
+    this.panelQ4.style.height = q4Height;
 
-    this.bubbleEl.style.left  = toVw(bubbleLeft);
+    this.bubbleEl.style.left  = toVw(bubbleLeft + adj);
     this.bubbleEl.style.width = toVw(bubbleWidth);
     this.bubbleEl.style.top   = toVh(bubbleTop);
   }
@@ -783,6 +931,7 @@ class ComicRevealInteraction {
   _layoutQ1Q5() {
     const q1 = State.getAnswer(0);
     const q5 = State.getAnswer(4);
+    const q4 = State.getAnswer(3);
     if (q1 === null && q5 === null) return;
 
     // base + per-row. Slopes (the _B constants) are kept from the original
@@ -859,36 +1008,54 @@ class ComicRevealInteraction {
     let q5Right = ph + width;
     if (q1 !== null) {
       const left = vw * 0.0191423;
-      this.panelQ1.style.width = toVw(width);
-      this.panelQ1.style.top   = '5.13vh';
-      this.panelQ1.style.left  = toVw(left);
-      q1Right = left + width;
+      // Each Q1 file's clip mask (built in Illustrator) starts at a different
+      // distance from its own canvas's top/left edges — Q1_TOP_OFFSET and
+      // Q1_LEFT_OFFSET measure that per file. "humans" (index 0) is the
+      // reference/role model (its mask sits flush against both edges).
+      // Left: most files are already flush (offset ~= humans'), but
+      // "god"'s mask is inset from its canvas's left edge, so its visible
+      // art doesn't reach as far left as the others' — scale the whole
+      // image up (bigger canvas = the same relative inset covers more
+      // absolute pixels, pushing the visible edge left to match), then
+      // shift left by the same amount added to width so the RIGHT edge
+      // (already correct) doesn't move.
+      const scale = (8 - this.Q1_LEFT_OFFSET[0]) / (8 - this.Q1_LEFT_OFFSET[q1]);
+      const w1    = width * scale;
+      const unit1 = unit * scale;
+      const left1 = left - (w1 - width);
+      // Top: shift so the VISIBLE artwork (not the invisible canvas) lines
+      // up the same way humans' does, using this file's own (possibly
+      // scaled) unit.
+      const topPx = vh * 0.0513 + this.Q1_TOP_OFFSET[0] * unit - this.Q1_TOP_OFFSET[q1] * unit1;
+      this.panelQ1.style.width = toVw(w1);
+      this.panelQ1.style.top   = toVh(topPx);
+      this.panelQ1.style.left  = toVw(left1);
+      q1Right = left + width; // right edge unaffected by per-file scaling
     }
     if (q5 !== null) {
       const left = vw * 0.0191423;
-      this.panelQ5.style.width = toVw(width);
-      this.panelQ5.style.top   = '24vh';
-      this.panelQ5.style.left  = toVw(left);
-      q5Right = left + width;
-
-      // "keep scrolling" (.comic-continue/.comic-idle-hint) now lives in
-      // whatever gap is actually left below Q5's real bottom edge, instead
-      // of a fixed row at the bottom margin — that's the space the Q5 lift
-      // above was for. Left/width stay as defined in CSS; only vertical
-      // placement is dynamic here.
-      const q5Bottom = q5Top + q5NaturalHeight * s;
-      const gapTop    = q5Bottom + 8;
-      const gapHeight = Math.max(0, availableBottom - gapTop);
-      this.continueEl.style.top    = toVh(gapTop);
-      this.continueEl.style.height = toVh(gapHeight);
-      this.idleHintEl.style.top    = toVh(gapTop);
-      this.idleHintEl.style.height = toVh(gapHeight);
+      // Same per-file clip-mask correction as Q1, but scaled by the actual
+      // visible-width fraction (right offset minus left offset) rather than
+      // left offset alone — reckless has a gap on both sides of its art, so
+      // a left-only scale under-sizes it and the right/bottom edges fall
+      // short. "doom" (index 0) is the reference.
+      const visFrac0 = this.Q5_RIGHT_OFFSET[0] - this.Q5_LEFT_OFFSET[0];
+      const visFrac5 = this.Q5_RIGHT_OFFSET[q5] - this.Q5_LEFT_OFFSET[q5];
+      const scale5 = visFrac0 / visFrac5;
+      const w5     = width * scale5;
+      const unit5  = unit * scale5;
+      const left5  = left + this.Q5_LEFT_OFFSET[0] * unit - this.Q5_LEFT_OFFSET[q5] * unit5;
+      const topPx5 = vh * 0.24 + this.Q5_TOP_OFFSET[0] * unit - this.Q5_TOP_OFFSET[q5] * unit5;
+      this.panelQ5.style.width = toVw(w5);
+      this.panelQ5.style.top   = toVh(topPx5);
+      this.panelQ5.style.left  = toVw(left5);
+      q5Right = left + width; // right edge unaffected by per-file scaling
     }
 
     // At stages 1-3, Q4 is in its centered entry position — _layoutQ4Centered
     // handles its left/width/top/height there. Skip all Q4/box/bubble
     // positioning here until stage 4 when they shift right together.
-    if (this.stage < 4) return;
+    if (this.stage < 3) return;
 
     // The solid pink fill behind Q4 normally starts at a fixed column (its
     // CSS default), regardless of how far Q1/Q5's right edge actually
@@ -909,15 +1076,33 @@ class ComicRevealInteraction {
     const boxHeight = vh * BOX_HEIGHT_VH;
     this.boxQ4.style.top    = '6.6vh';
     this.boxQ4.style.height = toVh(boxHeight);
-    this.panelQ4.style.left   = toVw(ph + naturalWidth * s + comicGap - 20);
-    this.panelQ4.style.width  = toVw(3.75 * naturalUnit * s);
-    this.panelQ4.style.top    = '5.8vh';
-    this.panelQ4.style.height = toVh(boxHeight);
+    const q4Override = q4 !== null ? this.Q4_OVERRIDE[q4] : null;
+    if (q4Override) {
+      this.panelQ4.style.left   = q4Override.left;
+      this.panelQ4.style.width  = q4Override.width;
+      this.panelQ4.style.top    = q4Override.top;
+      this.panelQ4.style.height = q4Override.height;
+    } else {
+      this.panelQ4.style.left   = toVw(ph + naturalWidth * s + comicGap - 20);
+      this.panelQ4.style.width  = toVw(3.75 * naturalUnit * s);
+      this.panelQ4.style.top    = '5.8vh';
+      this.panelQ4.style.height = toVh(boxHeight);
+    }
+
+    // Scale character geometry with s so the character and footbox stay
+    // proportional to the panels. When s < 1 (panels shrink to fit a tall
+    // Q1/Q5 answer), the CSS formula for --char-left-rest (which bakes in
+    // s=1) would leave the character appearing "shifted right" into the pink
+    // Q4 area. Overriding both vars here keeps everything in sync.
+    const charW    = Math.min(3.3 * naturalUnit * s, 0.74 * vh * 470.53 / 771.45);
+    const charLeft = ph + 5.05 * naturalUnit * s;
+    this.screen.style.setProperty('--char-w',         `${charW}px`);
+    this.screen.style.setProperty('--char-left-rest', toVw(charLeft));
 
     // Q4's speech bubble — sits to the LEFT of his box (not overlapping his
     // portrait), tail pointing right into the artwork.
     const BUBBLE_FACE_Y = 0.14;
-    const BUBBLE_WIDTH_RATIO = 0.17;
+    const BUBBLE_WIDTH_RATIO = 0.40;
     const bubbleWidth = width * BUBBLE_WIDTH_RATIO;
     const BUBBLE_GAP = -bubbleWidth * 0.45;
     const bubbleLeft  = boxLeft - BUBBLE_GAP - bubbleWidth;

@@ -233,7 +233,7 @@ class SidebarInteraction {
         if (pending.onCommit)      pending.onCommit();
         if (cfg && cfg.onLeave)    cfg.onLeave(this.illustrationImg);
         if (cfg && cfg.onCollapse) cfg.onCollapse();
-        this.markAnswered(pending.qIndex, pending.iconSrc);
+        this.markAnswered(pending.qIndex, pending.iconSrc, pending.iconSrcs);
       }
       this._applyFlex(-1);
       this._disableNext();
@@ -429,7 +429,7 @@ class SidebarInteraction {
     }, 200);
   }
 
-  markAnswered(questionIndex, iconSrc) {
+  markAnswered(questionIndex, iconSrc, iconSrcs) {
     this._answers[questionIndex] = iconSrc;
     if (this._wheelCleanup) { this._wheelCleanup(); this._wheelCleanup = null; }
     const b = this._bubbles[questionIndex];
@@ -442,13 +442,26 @@ class SidebarInteraction {
     b.innerHTML = '';
     this._reinjectSvg(b, questionIndex);
     if (iconSrc) {
+      const icons = (iconSrcs && iconSrcs.length > 1) ? iconSrcs : [iconSrc];
+      const count = icons.length;
       const wrap = document.createElement('div');
       wrap.className = 'sb-answered-wrap';
-      const img = document.createElement('img');
-      img.src = iconSrc;
-      img.className = 'sb-answered-icon';
-      img.draggable = false;
-      wrap.appendChild(img);
+      if (count > 1) {
+        wrap.classList.add(`sb-answered-multi-${count}`);
+        icons.forEach(src => {
+          const img = document.createElement('img');
+          img.src = src;
+          img.className = 'sb-answered-icon sb-answered-icon-multi';
+          img.draggable = false;
+          wrap.appendChild(img);
+        });
+      } else {
+        const img = document.createElement('img');
+        img.src = iconSrc;
+        img.className = 'sb-answered-icon';
+        img.draggable = false;
+        wrap.appendChild(img);
+      }
       b.appendChild(wrap);
 
       // Double-stroke ring for all answered bubbles
@@ -760,8 +773,9 @@ class SidebarInteraction {
         rebadge();
         buildTitle();
 
-        // show hint after first selection
+        // show hint after first selection and shift chips down
         hint.classList.toggle('sb-hint-visible', selected.length > 0);
+        list.classList.toggle('sb-chip-list-selected', selected.length > 0);
 
         // dim unselected chips when limit reached
         const atLimit = selected.length >= 3;
@@ -783,10 +797,11 @@ class SidebarInteraction {
             qIndex,
             answerIndex: selected[0],
             iconSrc: cfg.words[selected[0]].icon,
+            iconSrcs: selected.map(i => cfg.words[i].icon),
             selectedIndices: [...selected],
           };
-          if (this.onSelect) this.onSelect(qIndex, [...selected]);
           this._enableNext('Next');
+          if (this.onSelect) this.onSelect(qIndex, [...selected]);
         } else {
           if (cfg.onAllDeselected) cfg.onAllDeselected();
           this._pendingSelection = null;

@@ -1,7 +1,7 @@
 const QUESTIONS = [
   {
     id: 0,
-    text: "Who will end the World?",
+    text: "Who will end the World",
     background: "#ffebec",
     noCarousel: true,
     dndKey: "q1",
@@ -16,7 +16,7 @@ const QUESTIONS = [
   },
   {
     id: 1,
-    text: "When will the world end?",
+    text: "When will the world end",
     background: "#fed5d6",
     noCarousel: true,
     scrubKey: "q2",
@@ -31,7 +31,7 @@ const QUESTIONS = [
   },
   {
     id: 2,
-    text: "What is your reaction to the end of the world?",
+    text: "What is your reaction to the end of the world",
     background: "#fef7b3",
     noCarousel: true,
     dndKey: "q3dnd",
@@ -47,7 +47,7 @@ const QUESTIONS = [
   },
   {
     id: 3,
-    text: "Who will break the News to you?",
+    text: "Who will break the News to you",
     background: "#ffebec",
     noCarousel: true,
     dndKey: "q4",
@@ -78,7 +78,7 @@ const QUESTIONS = [
   },
   {
     id: 5,
-    text: "Do you think the world will be a simulation?",
+    text: "Do you think the world will be a simulation",
     background: "#fed5d6",
     noCarousel: true,
     scrubKey: "q6",

@@ -39,7 +39,7 @@
     <button class="btn-dev-results" id="btn-dev-q6">→ Q6</button>
     <button class="btn-dev-results" id="btn-dev-comic">→ Comic</button>
     <button class="btn-dev-results" id="btn-dev-comic-end">→ Comic End</button>
-    <button class="btn-dev-results" id="btn-dev-results">→ Results</button>
+    <button class="btn-dev-results" id="btn-dev-result">→ Result</button>
   </div>
 
   <!-- ===================== PRE-QUESTION SCREEN ===================== -->
@@ -260,14 +260,6 @@
       <img class="comic-panel comic-panel-q4" id="comic-panel-q4" src="" alt="">
       <img class="comic-panel comic-panel-q5" id="comic-panel-q5" src="" alt="">
 
-      <button class="comic-continue" id="comic-continue" type="button">keep scrolling ↓</button>
-
-      <!-- Idle nudge — fades in at the bottom if the user stops scrolling
-           partway through, fades out again the moment they resume. Separate
-           from .comic-continue above, which is a real "click to finish"
-           button only shown at the very last stage; this is a passive hint,
-           not interactive. -->
-      <div class="comic-idle-hint" id="comic-idle-hint" aria-hidden="true">keep scrolling ↓</div>
     </div>
 
     <!-- Q4's speech bubble text — this div itself is invisible (no
@@ -283,7 +275,10 @@
          bubble fill) is a sibling too, so this has to be one as well, or the
          fill paints straight over this text no matter its z-index. -->
     <div class="comic-bubble" id="comic-bubble">
-      <p class="comic-bubble-text" id="comic-bubble-text"></p>
+      <img class="bubble-svg-img" id="comic-bubble-img" src="" alt="">
+      <p class="comic-bubble-text" id="comic-bubble-text">
+        <span id="comic-bubble-line1"></span><span id="comic-bubble-line2" class="bubble-line2"></span>
+      </p>
     </div>
 
     <!-- Floating-exit pose — a separate, self-contained SVG file (same
@@ -311,6 +306,7 @@
          a sibling (still inside #screen-comic-reveal, which has no transform of
          its own) means its real-viewport-coordinate math always lines up. -->
     <div class="comic-bubble comic-bubble-char" id="comic-bubble-char">
+      <img class="bubble-svg-img bubble-svg-img-flip" id="comic-bubble-char-img" src="" alt="">
       <p class="comic-bubble-text" id="comic-bubble-char-text"></p>
     </div>
 
@@ -332,10 +328,14 @@
       <path class="comic-bubble-shape" id="comic-bubble-shape-char"></path>
     </svg>
 
+    <!-- Stage 2 full-screen cause text — replaces the "it will be caused by"
+         speech bubble. Characters hide; only this text + nav arrows are visible. -->
+    <p class="comic-cause-text" id="comic-cause-text"></p>
+
     <!-- Pre-scroll intro — the only thing visible before the user's first
          scroll input. Fades out for good the moment they start scrolling. -->
     <div class="comic-intro-hint" id="comic-intro-hint" aria-hidden="true">
-      <p class="comic-intro-text">scroll down to see your answer</p>
+      <p class="comic-intro-text">click to see your answer</p>
       <div class="comic-intro-arrow">↓</div>
     </div>
 
@@ -355,22 +355,32 @@
     <!-- Appears ~1s into the floating exit; click shrinks the character away
          and reveals the result page. -->
     <button class="comic-to-results" id="comic-to-results" type="button">to the results</button>
+
   </div>
 
-  <!-- ===================== RESULTS SCREEN ===================== -->
-  <div id="screen-results" class="screen">
-    <div class="results-top-left">
-      <img class="results-char-img" id="results-char-img" src="nonchalant.svg" alt="">
-      <p class="results-desc" id="results-desc">You are completely chill about everything, mostly because you refuse to leave your comfort zone. As long as you have your favorite blanket, some snacks, and your couch, you literally do not care what is happening in the outside world. When the apocalypse hits, you will be happy to have an excuse to cancel plans</p>
-    </div>
-    <img class="results-art-img" id="results-art-img" src="non.art.svg" alt="">
-    <button class="btn-results btn-try-again" id="btn-restart">Try Again</button>
-    <button class="btn-results btn-share" id="btn-share">Share</button>
-    <div class="results-dev-flip" id="results-dev-flip">
-      <button class="btn-dev-flip" id="btn-flip-prev">← Prev</button>
-      <span class="flip-label" id="flip-label">nonchalant</span>
-      <button class="btn-dev-flip" id="btn-flip-next">Next →</button>
-    </div>
+  <!-- Comic nav arrows — body-level, fixed bottom-center, touching the
+       screen's bottom edge (no margin), like the sidebar touches its edge.
+       Appear right after the character's first appearance (stage -1 -> 0)
+       and hide once the exit sequence starts. Replace the old whole-screen
+       click-to-advance/back interaction entirely. -->
+  <div id="comic-nav-arrows">
+    <button class="comic-nav-arrow comic-nav-back" id="comic-nav-back" aria-label="Back" type="button">←</button>
+    <button class="comic-nav-arrow comic-nav-forward" id="comic-nav-forward" aria-label="Forward" type="button">→</button>
+  </div>
+
+  <!-- End-result action buttons — body-level so they're unaffected by the share-mode
+       transform applied to #screen-comic-reveal. Fades in 1s after result assembles. -->
+  <button class="btn-results btn-try-again" id="btn-restart">Try Again</button>
+  <button class="btn-results btn-share" id="btn-share">Share</button>
+
+  <!-- Share mode: comic-panel snapshot (populated by JS before exit sequence).
+       Shows the final comic layout when the user switches to slide 2. -->
+  <div id="share-comic-frame" aria-hidden="true"></div>
+
+  <!-- Share nav dots — bottom center of the dark border in share mode -->
+  <div id="share-nav" aria-hidden="true">
+    <button class="share-dot" data-idx="0" aria-label="Results">Results</button>
+    <button class="share-dot" data-idx="1" aria-label="Answers">Answers</button>
   </div>
 
   <!-- Q1 custom cursor — at body level to escape screen stacking contexts -->
@@ -499,6 +509,8 @@
   <script src="js/sidebar.js"></script>
   <script src="js/comic-data.js"></script>
   <script src="js/comic-reveal.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
+  <script src="js/share.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
