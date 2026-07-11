@@ -25,11 +25,14 @@ class Q5Interaction {
       },
       {
         name: 'with Nature', type: 'lottie', dataVar: 'NATURE_DATA',
-        slotTop: '-5vh', slotBottom: '-5vh', slotLeft: '-5vw', slotRight: '-5vw',
+        // Negative insets intentionally overflow the slot so the full-screen
+        // animation always reaches all 4 edges — fixed -5vw wasn't enough
+        // overflow on wide screens, leaving a gap on the left/right.
+        slotTop: '-5vh', slotBottom: '-5vh', slotLeft: '-9vw', slotRight: '-9vw',
       },
       {
         name: 'with loved ones', type: 'lottie', dataVar: 'LOVED_DATA',
-        slotTop: '-5vh', slotBottom: '-5vh', slotLeft: '-5vw', slotRight: '-5vw',
+        slotTop: '-5vh', slotBottom: '-5vh', slotLeft: '-9vw', slotRight: '-9vw',
       },
       {
         name: 'doing something Reckless', type: 'video', src: 'reckless.mp4',

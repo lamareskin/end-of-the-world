@@ -11,14 +11,6 @@
   const btnPrev     = document.getElementById("btn-prev");
   const btnNext     = document.getElementById("btn-next");
   const btnRestart     = document.getElementById("btn-restart");
-  const btnDevQ2    = document.getElementById("btn-dev-q2");
-  const btnDevQ3    = document.getElementById("btn-dev-q3");
-  const btnDevQ5    = document.getElementById("btn-dev-q5");
-  const btnDevQ4    = document.getElementById("btn-dev-q4");
-  const btnDevQ6    = document.getElementById("btn-dev-q6");
-  const btnDevComic    = document.getElementById("btn-dev-comic");
-  const btnDevComicEnd = document.getElementById("btn-dev-comic-end");
-  const btnDevResult   = document.getElementById("btn-dev-result");
 
   const progressTracker = document.getElementById("progress-tracker");
   const questionText    = document.getElementById("question-text");
@@ -558,6 +550,15 @@
           { pink: 'God',            rest: ' will end the World' },
         ],
         defaultTitle: { pink: 'Who', rest: ' will end the World?' },
+        onHover: (i, selectedIndex) => {
+          if (qIntro.style.display === 'none') return;
+          const names = ['Humans', 'AI', 'A cosmic Event', 'God'];
+          if (names[i]) qIntroTitle.innerHTML = names[i];
+        },
+        onHoverEnd: (selectedIndex) => {
+          if (qIntro.style.display === 'none') return;
+          qIntroTitle.innerHTML = 'Who will end the World?';
+        },
         onEnter: (img, i, item) => {
           if (qIntro.style.display !== 'none') {
             // Build the full sentence directly so we don't copy the short hover text
@@ -760,6 +761,7 @@
     globeEl:          document.getElementById('comic-exit-globe'),
     globeResultArtEl: document.getElementById('comic-exit-result-art'),
     resultCharEl:     document.getElementById('comic-result-char-img'),
+    resultEyebrowEl:  document.getElementById('comic-result-eyebrow'),
     resultArtEl:      document.getElementById('comic-result-art'),
     resultDescEl:     document.getElementById('comic-result-desc'),
     resultStatEl:     document.getElementById('comic-result-stat'),
@@ -771,10 +773,6 @@
   comicReveal.onResultsShown = () => sidebarInteraction.dismissProgress();
 
   const shareViewer = new ShareViewer({ comicReveal });
-
-  // expose refs so the dev cycle button (outside IIFE) can reach them
-  window._devScreenComicReveal = screenComicReveal;
-  window._devComicReveal       = comicReveal;
 
   const _dndMap   = { q1: q1Interaction, q4: q4Interaction, q3dnd: q3DndInteraction, q5dnd: q5DndInteraction };
   const _scrubMap = { q2: q2Interaction, q6: q6Interaction };
@@ -923,7 +921,7 @@
   function _q2Sentence() {
     const idx = State.getAnswer(1);
     if (idx === null || idx === undefined) return '';
-    if (idx === 3) return "Someday when I'm too old to care,";
+    if (idx === 3) return "Someday when you're too old to care,";
     const t = QUESTIONS[1].answers[idx].text;
     const tCap = t.charAt(0).toUpperCase() + t.slice(1);
     return `<span style="white-space:nowrap">Some random day</span><br>${tCap},`;
@@ -940,7 +938,7 @@
       'A conspiracy theorist',
       'The News network',
     ];
-    return `${phrasing[idx]} will<br>tell you...`;
+    return `${phrasing[idx]}<br>will tell you...`;
   }
 
   let _preComicTimer    = null;
@@ -1103,6 +1101,18 @@
     if (!INTRO_TYPE_A.has(q.id)) {
       sidebarInteraction.expandFromArt();
     }
+    if (q.id === 0) {
+      // Q1: no reason to wait — qIntroBig/qIntroTitle are already forced to
+      // opacity:0 with transition:none above, so there's nothing left to
+      // finish animating before revealing the title. The 500ms delay below
+      // exists for the OTHER question types' fade-out; skipping it here is
+      // what makes this feel instant on click instead of visibly lagging.
+      qIntro.style.display = 'none';
+      sidebarInteraction.titleEl = questionText;
+      questionText.style.transition = 'none';
+      questionText.style.opacity = '1';
+      return;
+    }
     setTimeout(() => {
       qIntro.style.display = 'none';
       if (!INTRO_TYPE_A.has(q.id)) sidebarInteraction.expand(q.id);
@@ -1238,6 +1248,10 @@
 
     const lastDelay = slideEls[slideEls.length - 1].delay;
     setTimeout(() => {
+      if (!screenStart.classList.contains('active')) {
+        screenStart._zooming = false;
+        return;
+      }
       State.reset();
       sidebarInteraction.show();
       showQuestionWithArt(QUESTIONS[State.currentQuestion]);
@@ -1306,6 +1320,7 @@
   });
 
   btnPrev.addEventListener("click", () => {
+    sidebarInteraction.collapseActive();
     if (State.goPrev()) {
       showQuestionWithArt(QUESTIONS[State.currentQuestion]);
     }
@@ -1408,116 +1423,6 @@
 
   // Share button click is handled inside ShareViewer constructor
 
-  // --- Dev shortcuts ---
-
-  // Fills all 6 sidebar bubbles with random icons so the exit animation
-  // looks realistic when using shortcuts (→ Comic / → Comic End).
-  function _prefillSidebarRandom() {
-    const rand = arr => arr[Math.floor(Math.random() * arr.length)];
-
-    sidebarInteraction.markAnswered(0, rand(['humanicon.svg','aiicon.svg','cosmicicon.svg','godicon.svg']));
-    sidebarInteraction.markAnswered(1, rand(['5year.svg','20years.svg','60years.svg','oldage.svg']));
-
-    // Q3 multi-select: 1–3 random icons
-    const q3Pool = ['smallstress.svg','smallfear.svg','smalldenial.svg','smallrelief.svg','smallshock.svg'];
-    const q3Picked = q3Pool.sort(() => Math.random() - 0.5).slice(0, Math.ceil(Math.random() * 3));
-    sidebarInteraction.markAnswered(2, q3Picked[0], q3Picked);
-
-    sidebarInteraction.markAnswered(3, rand(['popeicon.svg','billicon.svg','conicon.svg','newsicon.svg']));
-
-    const q5Icons = [_svgUrl(window.ICON_DOOM), _svgUrl(window.ICON_NATURE), _svgUrl(window.ICON_LOVED), _svgUrl(window.ICON_RECKLESS), _svgUrl(window.ICON_SHOW)];
-    sidebarInteraction.markAnswered(4, rand(q5Icons));
-
-    sidebarInteraction.markAnswered(5, rand(['1.svg', '2.svg', '3.svg', '4.svg']));
-  }
-
-  function _devGoTo(index) {
-    State.reset();
-    while (State.currentQuestion < index) State.goNext();
-    sidebarInteraction.show();
-    showQuestionWithArt(QUESTIONS[index]);
-  }
-
-  btnDevQ2.addEventListener("click", () => _devGoTo(1));
-  btnDevQ3.addEventListener("click", () => _devGoTo(2));
-  btnDevQ4.addEventListener("click", () => _devGoTo(3));
-  btnDevQ5.addEventListener("click", () => _devGoTo(4));
-  btnDevQ6.addEventListener("click", () => _devGoTo(5));
-
-  btnDevComicEnd.addEventListener("click", () => {
-    State.reset();
-    for (let i = 0; i < 5; i++) { State.setAnswer(0); State.goNext(); }
-    sidebarInteraction.reset();
-    _prefillSidebarRandom();
-    _startComicLoading(() => {
-      screenComicReveal.classList.add('active');
-      comicReveal.start(computeResult());
-      setTimeout(() => {
-        screenLoading.classList.remove('active');
-        comicReveal.skipToEnd();
-      }, 400);
-    });
-  });
-
-  btnDevResult.addEventListener("click", async () => {
-    State.reset();
-    for (let i = 0; i < 5; i++) { State.setAnswer(0); State.goNext(); }
-    sidebarInteraction.hide();
-    screenComicReveal.classList.add('active');
-    showScreen(screenComicReveal);
-    await comicReveal.start(computeResult());
-    comicReveal.jumpToResult();
-  });
-
-  btnDevComic.addEventListener("click", () => {
-    State.reset();
-    sidebarInteraction.reset();
-    comicReveal.reset();
-
-    const rnd = arr => arr[Math.floor(Math.random() * arr.length)];
-    const rndIdx = n  => Math.floor(Math.random() * n);
-
-    // Q1 — cause of the end
-    const q1 = rndIdx(4);
-    State.setAnswer(q1); State.goNext();
-    sidebarInteraction.markAnswered(0, ['humanicon.svg','aiicon.svg','cosmicicon.svg','godicon.svg'][q1]);
-
-    // Q2 — when
-    const q2 = rndIdx(4);
-    State.setAnswer(q2); State.goNext();
-    sidebarInteraction.markAnswered(1, ['5year.svg','20years.svg','60years.svg','oldage.svg'][q2]);
-
-    // Q3 — emotions (multi-select, 1–3 random)
-    const q3Icons = ['smallstress.svg','smallfear.svg','smalldenial.svg','smallrelief.svg','smallshock.svg'];
-    const q3Count = Math.ceil(Math.random() * 3);
-    const q3Indices = [0,1,2,3,4].sort(() => Math.random() - 0.5).slice(0, q3Count);
-    State.setAnswer([...q3Indices]); State.goNext();
-    sidebarInteraction.markAnswered(2, q3Icons[q3Indices[0]], q3Indices.map(i => q3Icons[i]));
-
-    // Q4 — who tells you
-    const q4 = rndIdx(4);
-    State.setAnswer(q4); State.goNext();
-    sidebarInteraction.markAnswered(3, ['popeicon.svg','billicon.svg','conicon.svg','newsicon.svg'][q4]);
-
-    // Q5 — last day activity
-    const q5 = rndIdx(5);
-    const q5Icons = [_svgUrl(window.ICON_DOOM), _svgUrl(window.ICON_NATURE), _svgUrl(window.ICON_LOVED), _svgUrl(window.ICON_RECKLESS), _svgUrl(window.ICON_SHOW)];
-    State.setAnswer(q5); State.goNext();
-    sidebarInteraction.markAnswered(4, q5Icons[q5]);
-
-    // Q6 — simulation belief
-    const q6 = rndIdx(4);
-    State.setAnswer(q6); State.goNext();
-    sidebarInteraction.markAnswered(5, ['1.svg','2.svg','3.svg','4.svg'][q6]);
-
-    _startComicLoading(() => {
-      screenComicReveal.classList.add('active');
-      comicReveal.start(computeResult());
-      setTimeout(() => screenLoading.classList.remove('active'), 400);
-    });
-  });
-
-
   // --- About toggle ---
   const aboutContainer = document.getElementById('about-container');
   const aboutImg       = document.getElementById('about-img');
@@ -1541,27 +1446,3 @@
   new MutationObserver(apply).observe(tray, { childList: true });
 })();
 
-// Dev: cycle result types
-document.getElementById('btn-dev-cycle-result').onclick = function () {
-  var KEYS = ['nonchalant', 'clueless', 'knowitall', 'runaway'];
-  var idx = (this._idx = ((this._idx || 0) + 1) % KEYS.length);
-  var key = KEYS[idx];
-  var r = QUIZ_RESULTS[key];
-  var screen = document.getElementById('screen-comic-reveal');
-  KEYS.forEach(function(k) { screen.classList.remove('result-' + k); });
-  screen.classList.add('result-' + key);
-  var charEl = document.getElementById('comic-result-char-img');
-  var artEl  = document.getElementById('comic-result-art');
-  var descEl = document.getElementById('comic-result-desc');
-  charEl.innerHTML   = r.title.replace('The ', 'The<br>');
-  descEl.textContent = r.desc;
-  artEl.src = r.art;
-  var statEl = document.getElementById('comic-result-stat');
-  if (statEl && window._devComicReveal) {
-    statEl.innerHTML = window._devComicReveal._buildStatText(key);
-    statEl.classList.add('slide-in');
-  }
-  charEl.classList.add('slide-in');
-  artEl.classList.add('slide-in');
-  descEl.classList.add('slide-in');
-};

@@ -1,5 +1,5 @@
 class ComicRevealInteraction {
-  constructor({ screen, sceneEl, titleEl, titleBoxEl, inboxCaptionEl, characterEl, floatingCharEl, panelQ1, panelQ4, panelQ5, boxQ4, footboxEl, navBackEl, navForwardEl, introHintEl, bubbleEl, bubbleTextEl, bubbleLine1El, bubbleLine2El, bubbleCharEl, bubbleCharTextEl, shapeQ4El, shapeCharEl, bgOverlayEl, globeEl, globeResultArtEl, resultCharEl, resultArtEl, resultDescEl, resultStatEl, toResultsEl, starsCanvasEl }) {
+  constructor({ screen, sceneEl, titleEl, titleBoxEl, inboxCaptionEl, characterEl, floatingCharEl, panelQ1, panelQ4, panelQ5, boxQ4, footboxEl, navBackEl, navForwardEl, introHintEl, bubbleEl, bubbleTextEl, bubbleLine1El, bubbleLine2El, bubbleCharEl, bubbleCharTextEl, shapeQ4El, shapeCharEl, bgOverlayEl, globeEl, globeResultArtEl, resultCharEl, resultEyebrowEl, resultArtEl, resultDescEl, resultStatEl, toResultsEl, starsCanvasEl }) {
     this.screen      = screen;
     this.sceneEl     = sceneEl;
     this.titleEl     = titleEl;
@@ -27,6 +27,7 @@ class ComicRevealInteraction {
     this.globeEl           = globeEl;
     this.globeResultArtEl  = globeResultArtEl;  // img inside globe (center display)
     this.resultCharEl      = resultCharEl;       // char art, top-left
+    this.resultEyebrowEl   = resultEyebrowEl;    // "You are" label above the title
     this.resultArtEl       = resultArtEl;        // result art, bottom-right final position
     this.resultDescEl      = resultDescEl;       // description paragraph
     this.resultStatEl      = resultStatEl;       // "X% of Y users" stat line
@@ -170,6 +171,26 @@ class ComicRevealInteraction {
     // ~1.9% — both were throwing off left-edge alignment with Q1.
     this.Q5_LEFT_OFFSET = [0.0106, 0.0106, 0.0106, 0.5193, 0.1195];
 
+    // Each file's own <clipPath> polygon (diagonal cut), as % of its own
+    // viewBox — read directly from the SVG source. The clipPath is defined
+    // inside each file but never actually applied to any element there (an
+    // export quirk), so the raw <img> renders whatever sits in that
+    // diagonal-cut corner uncropped. recklesscomic in particular has stray
+    // leftover art in that corner that bled into Q4's panel — applying this
+    // polygon as a real CSS clip-path hides it the way the SVG intended.
+    this.Q5_CLIP = [
+      [[0.133, 47.772], [0.133, 99.797], [99.867, 99.797], [99.867, 0.276]],   // doom
+      [[0.133, 46.187], [0.136, 96.679], [99.776, 96.459], [99.867, 0.267]],   // nature
+      [[0.133, 47.772], [0.133, 99.797], [99.867, 99.797], [99.867, 0.276]],   // loved
+      [[6.566, 47.094], [6.491, 98.354], [89.992, 98.354], [90.068, 0.272]],   // reckless
+      // show — no clip. This one's canvas margin isn't blank export
+      // overflow like the others; it's an intentional scalloped-circle
+      // border baked into the art, so cropping it (like every other Q5
+      // file) was hiding it. Full 0-100 rect = uncropped, same image
+      // position/scale as before since only the clip changed.
+      [[0, 0], [0, 100], [100, 100], [100, 0]],
+    ];
+
     // Speech bubble SVG files — small/medium/large by text length.
     // Tail is at bottom-right (designed for a right-side speaker / Q4).
     // The main character's bubble img has .bubble-svg-img-flip (scaleX(-1))
@@ -188,24 +209,10 @@ class ComicRevealInteraction {
     this.navForwardEl.addEventListener('click', () => this._navigate(1));
     this.navBackEl.addEventListener('click', () => this._navigate(-1));
     if (this.toResultsEl) this.toResultsEl.addEventListener('click', () => this._onToResults());
-
-    // Dev preview: click any panel to cycle through its possible answers, so all
-    // combinations can be checked without replaying the quiz.
-    this.panelQ1.addEventListener('click', () => this._cyclePanel(0, this.Q1_FILES.length));
-    this.panelQ4.addEventListener('click', () => this._cyclePanel(3, this.Q4_FILES.length));
-    this.panelQ5.addEventListener('click', () => this._cyclePanel(4, this.Q5_FILES.length));
   }
 
   _pickBubbleSvg(text) {
     return this.BUBBLE_SVGS.find(b => text.length <= b.maxChars).file;
-  }
-
-  _cyclePanel(qIndex, count) {
-    const cur = State.getAnswer(qIndex) ?? -1;
-    const next = (cur + 1) % count;
-    console.log('[comic-reveal] panel clicked, qIndex=' + qIndex + ' cur=' + cur + ' next=' + next); // temporary debug
-    State.setAnswerAt(qIndex, next);
-    this._render();
   }
 
   _ensureCharacterSvg() {
@@ -262,6 +269,26 @@ class ComicRevealInteraction {
     this.screen.scrollTop = this.screen.scrollHeight;
   }
 
+  // _render() intentionally hides all comic panels (opacity:0) at stages 7
+  // and 9 — those stages show only full-screen narrative text. Both
+  // jumpToResult() (skipToEnd() lands on stage 9, STAGE_COUNT) and the
+  // normal exit sequence (reached by clicking forward while already on the
+  // last stage) can end up cloning the scene while that opacity:0 is still
+  // live, producing a blank comic on the share/answers card. The archived
+  // snapshot should always show the full composition regardless of which
+  // stage the live scene happened to be frozen at, so force it back on the
+  // CLONE only (leaving the live scene's own state untouched).
+  _forceSnapshotPanelsVisible(snapshot) {
+    ['comic-panel-q1', 'comic-panel-q4', 'comic-panel-box-q4', 'comic-panel-q5', 'comic-footbox', 'comic-character']
+      .forEach(id => {
+        const el = snapshot.querySelector('#' + id);
+        if (el) {
+          el.style.opacity = '1';
+          el.style.transition = 'none';
+        }
+      });
+  }
+
   jumpToResult() {
     this.skipToEnd();
     this.navBackEl.classList.remove('visible');
@@ -279,6 +306,7 @@ class ComicRevealInteraction {
     }
     if (this._resultKey) this.screen.classList.add('result-' + this._resultKey);
     this.comicSceneSnapshot = this.sceneEl.cloneNode(true);
+    this._forceSnapshotPanelsVisible(this.comicSceneSnapshot);
     // Skip all exit animations — hide comic chrome, go straight to result page
     this.screen.classList.add('exiting');
     this.bgOverlayEl.classList.add('gradient-in', 'gradient-warm');
@@ -313,8 +341,6 @@ class ComicRevealInteraction {
 
   reset() {
     this.stop();
-    const cycleBtn = document.getElementById('btn-dev-cycle-result');
-    if (cycleBtn) cycleBtn.style.display = '';
     this.stage = -1;
     this._autoBubble          = false;
     this._autoBubbleTimer     = null;
@@ -335,6 +361,7 @@ class ComicRevealInteraction {
     this.bgOverlayEl.classList.remove('gradient-in', 'gradient-warm', 'full-pink');
     this.globeEl.classList.remove('globe-rising', 'result-touched', 'globe-hide');
     this.resultCharEl.classList.remove('slide-in');
+    if (this.resultEyebrowEl) this.resultEyebrowEl.classList.remove('slide-in');
     this.resultArtEl.classList.remove('slide-in');
     this.resultDescEl.classList.remove('slide-in');
     if (this.resultStatEl) this.resultStatEl.classList.remove('slide-in');
@@ -462,7 +489,12 @@ class ComicRevealInteraction {
 
     // Capture the comic scene before panels slide away — used by the share viewer
     // comic slide. cloneNode(true) preserves all inline style transforms set by JS.
+    // Must happen BEFORE the .exiting class below — that class triggers the
+    // panels' slide-away transition, and a snapshot taken after it starts
+    // would freeze mid-slide (or already off-screen) instead of the settled
+    // final-stage state.
     this.comicSceneSnapshot = this.sceneEl.cloneNode(true);
+    this._forceSnapshotPanelsVisible(this.comicSceneSnapshot);
 
     // Clear any full-screen text (stages 2, 7, 9) before exit animation.
     this.causeTextEl.classList.remove('visible');
@@ -581,14 +613,15 @@ class ComicRevealInteraction {
     if (this.resultStatEl && this._resultKey) {
       this.resultStatEl.innerHTML = this._buildStatText(this._resultKey);
     }
-    const t1 = setTimeout(() => this.resultCharEl.classList.add('slide-in'), 1400);
+    const t1 = setTimeout(() => {
+      this.resultCharEl.classList.add('slide-in');
+      if (this.resultEyebrowEl) this.resultEyebrowEl.classList.add('slide-in');
+    }, 1400);
     const t2 = setTimeout(() => this.resultDescEl.classList.add('slide-in'), 1900);
     const t3 = setTimeout(() => {
       if (this.resultStatEl) this.resultStatEl.classList.add('slide-in');
       document.getElementById('btn-restart').classList.add('visible');
       document.getElementById('btn-share').classList.add('visible');
-      const cycleBtn = document.getElementById('btn-dev-cycle-result');
-      if (cycleBtn) cycleBtn.style.display = 'block';
       if (this.onResultsShown) this.onResultsShown();
     }, 3100);
     this._exitTimeouts.push(t1, t2, t3);
@@ -1080,7 +1113,16 @@ class ComicRevealInteraction {
     const q1Aspect = q1 !== null ? parseAspect(this.Q1_ASPECT[q1]) : null;
     const q5Aspect = q5 !== null ? parseAspect(this.Q5_ASPECT[q5]) : null;
     const q1NaturalHeight = q1Aspect ? naturalWidth / q1Aspect : 0;
-    const q5NaturalHeight = q5Aspect ? naturalWidth / q5Aspect : 0;
+    // The per-file horizontal scale-up (see the q5 block below) that widens
+    // files with blank side-margins so their VISIBLE art matches the
+    // reference width. It stretches height by the same factor, so the
+    // bottom-fit bound must use the SCALED height or the panel hangs below
+    // the margin (reckless was ~19% too tall/low without this).
+    const q5Scale = q5 !== null
+      ? (this.Q5_RIGHT_OFFSET[0] - this.Q5_LEFT_OFFSET[0]) /
+        (this.Q5_RIGHT_OFFSET[q5] - this.Q5_LEFT_OFFSET[q5])
+      : 1;
+    const q5NaturalHeight = q5Aspect ? (naturalWidth / q5Aspect) * q5Scale : 0;
     const offset1 = q1 !== null ? this.Q1_TOP_OFFSET[q1] : 0;
 
     const q1TopBase = Q1_TOP_A + Q1_TOP_B * row;
@@ -1156,9 +1198,11 @@ class ComicRevealInteraction {
       const unit5  = unit * scale5;
       const left5  = left + this.Q5_LEFT_OFFSET[0] * unit - this.Q5_LEFT_OFFSET[q5] * unit5;
       const topPx5 = vh * 0.24 + this.Q5_TOP_OFFSET[0] * unit - this.Q5_TOP_OFFSET[q5] * unit5;
-      this.panelQ5.style.width = toVw(w5);
-      this.panelQ5.style.top   = toVh(topPx5);
-      this.panelQ5.style.left  = toVw(left5);
+      const clipPts = this.Q5_CLIP[q5].map(([x, y]) => `${x}% ${y}%`).join(', ');
+      this.panelQ5.style.width     = toVw(w5);
+      this.panelQ5.style.top       = toVh(topPx5);
+      this.panelQ5.style.left      = toVw(left5);
+      this.panelQ5.style.clipPath  = `polygon(${clipPts})`;
       q5Right = left + width; // right edge unaffected by per-file scaling
     }
 

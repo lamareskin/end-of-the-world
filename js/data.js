@@ -20,7 +20,7 @@ const QUESTIONS = [
     background: "#fed5d6",
     noCarousel: true,
     scrubKey: "q2",
-    introHeading: "time heals,<br>but also",
+    introHeading: "Time heals,<br>but also",
     introBig: "DESTROYS",
     answers: [
       { text: "In 5 years",               result: "urgent",    quizResult: "runaway"    },

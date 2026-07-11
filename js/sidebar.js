@@ -44,9 +44,11 @@ class SidebarInteraction {
     this._bubbleShapeObs  = [];
 
     // Inline-next state (Next appears inside the next question's bubble)
-    this._inlineNextBubble  = null;
-    this._inlineNextHandler = null;
-    this._inlineNextIndex   = null;
+    this._inlineNextBubble       = null;
+    this._inlineNextHandler      = null;
+    this._inlineNextEnterHandler = null;
+    this._inlineNextLeaveHandler = null;
+    this._inlineNextIndex        = null;
 
     // Custom cursor state
     this._customCursor        = null;
@@ -247,6 +249,9 @@ class SidebarInteraction {
     if (!this._inlineNextBubble) return;
     const b = this._inlineNextBubble;
     b.removeEventListener('click', this._inlineNextHandler);
+    if (this._inlineNextEnterHandler) b.removeEventListener('mouseenter', this._inlineNextEnterHandler);
+    if (this._inlineNextLeaveHandler) b.removeEventListener('mouseleave', this._inlineNextLeaveHandler);
+    this._setCustomCursorState('normal');
     if (b.classList.contains('sb-next-inline')) {
       b.classList.remove('sb-next-inline');
       b.innerHTML = '';
@@ -256,10 +261,18 @@ class SidebarInteraction {
       num.className = 'sb-bubble-num';
       num.textContent = i + 1;
       b.appendChild(num);
+      // _enableNext() sets an explicit flexGrow (0.9/1.2) to turn this
+      // bubble into the inline Next prompt — undo it here too, or it's
+      // left oversized relative to its siblings until the next _applyFlex
+      // call happens to run (which the forward/Next path always triggers,
+      // masking this, but Previous's collapseActive() doesn't).
+      b.style.flexGrow = '';
     }
-    this._inlineNextBubble  = null;
-    this._inlineNextHandler = null;
-    this._inlineNextIndex   = null;
+    this._inlineNextBubble       = null;
+    this._inlineNextHandler      = null;
+    this._inlineNextEnterHandler = null;
+    this._inlineNextLeaveHandler = null;
+    this._inlineNextIndex        = null;
   }
 
   _enableNext(label) {
@@ -267,11 +280,21 @@ class SidebarInteraction {
     const nextQ = this._activeQ + 1;
 
     if (this._activeQ >= 0 && nextQ < this._totalQ) {
+      // Q5: measure the wheel's height BEFORE anything below touches the
+      // Next bubble's flexGrow — getBoundingClientRect() forces a layout
+      // flush, so measuring afterward was capturing the wheel's ALREADY-
+      // shrunk size (Next's flexGrow had already stolen its share) and
+      // then pinning it there permanently, making it look tiny forever.
+      let pinnedWheelHeight = 0;
+      if (this._activeQ === 4) {
+        pinnedWheelHeight = this._bubbles[4].getBoundingClientRect().height;
+      }
+
       // Transform the next question's bubble into the Next button
       this._clearInlineNext();
       const b = this._bubbles[nextQ];
       b.classList.add('sb-next-inline');
-      b.style.flexGrow = this._activeQ === 4 ? '1.2' : '0.9';
+      b.style.flexGrow = this._activeQ === 4 ? '0.55' : '0.9';
       b.innerHTML = '';
       this._reinjectSvg(b, nextQ);
       const span = document.createElement('span');
@@ -282,16 +305,19 @@ class SidebarInteraction {
       this._inlineNextIndex   = nextQ;
       this._inlineNextHandler = () => this._fireNext();
       b.addEventListener('click', this._inlineNextHandler);
+      this._inlineNextEnterHandler = () => this._setCustomCursorState('click');
+      this._inlineNextLeaveHandler = () => this._setCustomCursorState('normal');
+      b.addEventListener('mouseenter', this._inlineNextEnterHandler);
+      b.addEventListener('mouseleave', this._inlineNextLeaveHandler);
 
       if (this._activeQ === 4) {
-        // Q5: pin the semicircle to its current pixel height so it never shifts
+        // Pin the semicircle to its pre-shrink pixel height so it never shifts
         const b4 = this._bubbles[4];
-        const h = b4.getBoundingClientRect().height;
-        if (h > 0) {
+        if (pinnedWheelHeight > 0) {
           b4.style.transition = 'none';
           b4.style.flexGrow   = '0';
           b4.style.flexShrink = '0';
-          b4.style.flexBasis  = h + 'px';
+          b4.style.flexBasis  = pinnedWheelHeight + 'px';
           b4.getBoundingClientRect(); // force reflow
           b4.style.transition = '';
         }
@@ -549,7 +575,9 @@ class SidebarInteraction {
     });
 
     const VIBRATE_MS = 1100; // how long the slow shake lasts
-    const SUCK_MS    = 620;  // how long the suck-in flight takes
+    const FLY_MS     = 420;  // fly from bubble to center, arriving still visible
+    const ORBIT_MS   = 480;  // inward spiral swirl + shrink + fade once at center
+    const SUCK_MS    = FLY_MS + ORBIT_MS; // combined — later phases key off this total
 
     // Phase 1 — slow vibration in place, amplitude builds over time
     requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -580,24 +608,76 @@ class SidebarInteraction {
 
     const PAUSE_MS = 450; // empty open bar pause before shrinking
 
-    // Phase 2 — icons shoot out, bar stays at full width
+    // Phase 2 — icons shoot to center (2a), then swirl inward in a shrinking
+    // spiral orbit before fading out (2b), instead of just vanishing the
+    // instant they arrive.
+    const ORBIT_RADIUS = 26;  // px, spiral starts at this radius around center
+    const ORBIT_STEPS  = 6;   // keyframe resolution for the spiral curve
+    const ORBIT_TURNS  = 1;   // full revolutions during the swirl
+
+    // Builds a keyframe array spiraling inward around (dx,dy) — radius,
+    // scale and opacity all ease toward 0 by the final step so the icon
+    // visibly swirls itself away rather than just shrinking in place.
+    const buildOrbitKeyframes = (dx, dy, dir, startScale) => {
+      const kfs = [];
+      for (let s = 0; s <= ORBIT_STEPS; s++) {
+        const t       = s / ORBIT_STEPS;
+        const angle   = dir * t * 360 * ORBIT_TURNS * (Math.PI / 180);
+        const radius  = ORBIT_RADIUS * (1 - t);
+        const scale   = startScale * (1 - t);
+        const opacity = t < 0.65 ? 1 : 1 - (t - 0.65) / 0.35;
+        const x = dx + radius * Math.cos(angle);
+        const y = dy + radius * Math.sin(angle);
+        kfs.push({ transform: `translate(${x}px, ${y}px) scale(${scale})`, opacity, offset: t });
+      }
+      return kfs;
+    };
+
+    // Dark blurred glow at the center — grows in as icons start arriving,
+    // shrinks away once they've all finished swirling out.
+    const glow = document.createElement('div');
+    glow.className = 'sb-exit-glow';
+    document.body.appendChild(glow);
+    this._exitAnimGlow = glow;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      glow.classList.add('sb-exit-glow-visible');
+    }));
+
     this._exitAnimTimer2 = setTimeout(() => {
       this._exitAnimClones.forEach((clone, i) => {
         const { rect } = snapshots[i];
-        const dx = cx - (rect.left + rect.width  / 2);
-        const dy = cy - (rect.top  + rect.height / 2);
-        clone.animate([
-          { transform: 'translate(0,0) scale(1)',                              opacity: 1, offset: 0    },
-          { transform: `translate(${dx*0.05}px,${dy*0.05}px) scale(1.15)`,    opacity: 1, offset: 0.10 },
-          { transform: `translate(${dx}px,${dy}px) scale(0)`,                 opacity: 0, offset: 1    },
+        const dx  = cx - (rect.left + rect.width  / 2);
+        const dy  = cy - (rect.top  + rect.height / 2);
+        const dir = (i % 2 === 0 ? 1 : -1); // alternate spin direction per icon
+
+        // 2a: fly from the bubble to the center, still fully visible on arrival.
+        const flyAnim = clone.animate([
+          { transform: 'translate(0,0) scale(1)',                           opacity: 1, offset: 0    },
+          { transform: `translate(${dx*0.05}px,${dy*0.05}px) scale(1.15)`, opacity: 1, offset: 0.15 },
+          { transform: `translate(${dx}px,${dy}px) scale(0.85)`,           opacity: 1, offset: 1    },
         ], {
-          duration: SUCK_MS,
+          duration: FLY_MS,
           delay:    i * 22,
           easing:   'cubic-bezier(0.55, 0, 1, 1)',
           fill:     'forwards',
         });
+
+        // 2b: once it lands, spiral inward around that same center point,
+        // shrinking and fading, before it's fully gone.
+        flyAnim.onfinish = () => {
+          clone.animate(buildOrbitKeyframes(dx, dy, dir, 0.85), {
+            duration: ORBIT_MS,
+            easing:   'ease-in',
+            fill:     'forwards',
+          });
+        };
       });
     }, VIBRATE_MS);
+
+    // Glow shrinks away right as the last icon finishes swirling out.
+    this._exitAnimTimerGlow = setTimeout(() => {
+      glow.classList.remove('sb-exit-glow-visible');
+    }, VIBRATE_MS + SUCK_MS);
 
     const SHRINK_MS  = 650;  // horizontal width squeeze duration
     const STRETCH_MS = 1000; // vertical stretch duration
@@ -648,13 +728,19 @@ class SidebarInteraction {
     clearTimeout(this._exitAnimTimer2);
     clearTimeout(this._exitAnimTimer3);
     clearTimeout(this._exitAnimTimer4);
-    this._exitAnimTimer  = null;
-    this._exitAnimTimer2 = null;
-    this._exitAnimTimer3 = null;
-    this._exitAnimTimer4 = null;
+    clearTimeout(this._exitAnimTimerGlow);
+    this._exitAnimTimer     = null;
+    this._exitAnimTimer2    = null;
+    this._exitAnimTimer3    = null;
+    this._exitAnimTimer4    = null;
+    this._exitAnimTimerGlow = null;
     if (this._exitAnimClones) {
       this._exitAnimClones.forEach(el => el.remove());
       this._exitAnimClones = null;
+    }
+    if (this._exitAnimGlow) {
+      this._exitAnimGlow.remove();
+      this._exitAnimGlow = null;
     }
     // Restore originals' opacity in case animation was cancelled mid-flight
     this._bubbles.forEach(b => {
@@ -698,6 +784,52 @@ class SidebarInteraction {
       b.style.transition  = '';
     });
     this._disableNext();
+  }
+
+  // Resets just the currently-active bubble back to its plain numbered
+  // placeholder, tearing down any type-specific interaction state (wheel,
+  // slider, custom cursor) bound to it — same per-bubble cleanup as reset(),
+  // but scoped to one bubble instead of wiping the whole sidebar. Used by
+  // the Previous button so the question being left behind doesn't keep
+  // whatever mid-interaction UI (chips, wheel rotation, etc.) it had.
+  collapseActive() {
+    if (this._activeQ < 0) return;
+    const i = this._activeQ;
+    this._cleanupSlider();
+    if (this._wheelCleanup) { this._wheelCleanup(); this._wheelCleanup = null; }
+    this._teardownCustomCursor();
+    this._clearInlineNext();
+    const b = this._bubbles[i];
+    if (b) {
+      b.className = 'sb-bubble';
+      if (i === 1) b.classList.add('sb-q2-bubble');
+      if (i === 2) b.classList.add('sb-q3-bubble');
+      if (i === 4) b.classList.add('sb-q5-bubble');
+      if (i === 5) b.classList.add('sb-q6-bubble');
+      if (i === 0 || i === 3) b.classList.add('sb-bubble-diamond');
+      b.innerHTML = '';
+      this._reinjectSvg(b, i);
+      const num = document.createElement('span');
+      num.className = 'sb-bubble-num';
+      num.textContent = i + 1;
+      b.appendChild(num);
+      b.style.clipPath    = '';
+      b.style.flexBasis   = '';
+      b.style.minHeight   = '';
+      b.style.borderWidth = '';
+      b.style.borderColor = '';
+      b.style.transition  = '';
+    }
+    this._pendingSelection = null;
+    this._activeQ = -1;
+    // Re-run the authoritative sizing pass over every bubble, not just the
+    // one we just collapsed — _enableNext()/_clearInlineNext() can leave
+    // other bubbles (e.g. whichever one was hijacked into the inline
+    // "Next" prompt) with stale flexGrow values of their own, which only
+    // ever got corrected by the _applyFlex() call inside expand() on the
+    // forward path. Previous never went through expand() for the bubble
+    // being left, so nothing normalized the rest of the row.
+    this._applyFlex(-1);
   }
 
   // ─── Custom cursor (Q1) ────────────────────────────────────────────────────
@@ -748,19 +880,23 @@ class SidebarInteraction {
     if (!this._customCursor) return;
     if (state === 'grab') {
       this._customCursorImg.src = 'grab.svg';
-      this._customCursor.classList.remove('sb-cursor-hover', 'sb-cursor-scroll');
+      this._customCursor.classList.remove('sb-cursor-hover', 'sb-cursor-scroll', 'sb-cursor-click');
       this._customCursor.classList.add('sb-cursor-grab');
     } else if (state === 'hover') {
       this._customCursorImg.src = 'hover.svg';
-      this._customCursor.classList.remove('sb-cursor-grab', 'sb-cursor-scroll');
+      this._customCursor.classList.remove('sb-cursor-grab', 'sb-cursor-scroll', 'sb-cursor-click');
       this._customCursor.classList.add('sb-cursor-hover');
     } else if (state === 'scroll') {
       this._customCursorImg.src = 'scroll.svg';
-      this._customCursor.classList.remove('sb-cursor-hover', 'sb-cursor-grab');
+      this._customCursor.classList.remove('sb-cursor-hover', 'sb-cursor-grab', 'sb-cursor-click');
       this._customCursor.classList.add('sb-cursor-scroll');
+    } else if (state === 'click') {
+      this._customCursorImg.src = 'hover.svg';
+      this._customCursor.classList.remove('sb-cursor-hover', 'sb-cursor-grab', 'sb-cursor-scroll');
+      this._customCursor.classList.add('sb-cursor-click');
     } else {
       this._customCursorImg.src = 'normal.svg';
-      this._customCursor.classList.remove('sb-cursor-hover', 'sb-cursor-grab', 'sb-cursor-scroll');
+      this._customCursor.classList.remove('sb-cursor-hover', 'sb-cursor-grab', 'sb-cursor-scroll', 'sb-cursor-click');
     }
   }
 
@@ -849,10 +985,12 @@ class SidebarInteraction {
       slot.appendChild(img);
 
       slot.addEventListener('mouseenter', () => {
+        if (cfg.onHover) cfg.onHover(i, this._pendingSelection ? this._pendingSelection.answerIndex : -1);
         if (this.titleEl && !this._pendingSelection) this.titleEl.textContent = item.text;
       });
 
       slot.addEventListener('mouseleave', () => {
+        if (cfg.onHoverEnd) cfg.onHoverEnd(this._pendingSelection ? this._pendingSelection.answerIndex : -1);
         if (!this.titleEl) return;
         const sel = this._pendingSelection;
         if (sel && sel.qIndex === qIndex && cfg.titleConfigs && cfg.titleConfigs[sel.answerIndex]) {

@@ -153,7 +153,7 @@ button {
   margin: 0;
   font-family: 'PPNeueCorp', sans-serif;
   font-weight: 500;
-  font-size: clamp(80px, 14vw, 210px);
+  font-size: clamp(60px, 11vw, 168px);
   line-height: 1;
   letter-spacing: -0.01em;
   color: #fe80fe;
@@ -225,7 +225,7 @@ button {
 .start-moon {
   position: absolute;
   top: 25vh;
-  left: calc(var(--ph) + 10*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 10*var(--gap));
+  left: calc(var(--ph) + 9.2*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 9.2*var(--gap));
   width: calc((100vw - 2*var(--ph) - 11*var(--gap))/12);
   height: auto;
   pointer-events: none;
@@ -323,9 +323,9 @@ button {
 .globe-container {
   position: absolute;
   bottom: 12vh;
-  left: calc(var(--ph) + 4.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 7*var(--gap));
-  width: min(calc((4.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 3.5*var(--gap)) * 1.6), 75vh, 820px);
-  height: min(calc((4.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 3.5*var(--gap)) * 1.6), 75vh, 820px);
+  left: calc(var(--ph) + 5.2*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 7*var(--gap));
+  width: min(calc((4.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 3.5*var(--gap)) * 1.95), 88vh, 960px);
+  height: min(calc((4.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 3.5*var(--gap)) * 1.95), 88vh, 960px);
   z-index: 100;
   pointer-events: none;
 }
@@ -462,6 +462,8 @@ button {
   padding-top:   calc(var(--pv) + 0.5em + 8vh);
   padding-left:  calc(var(--ph) + 1vw);
   padding-right: calc(8vh + 11.6vw + 3vw);
+  transform: scale(1.1);
+  transform-origin: center;
 }
 
 .q1-img-ai {
@@ -475,6 +477,8 @@ button {
 .q1-img-cosmic {
   padding-right: calc(100vw / 12 + 2vw);
   object-position: center top;
+  transform: scale(1.22);
+  transform-origin: center;
 }
 
 .q1-img-god {
@@ -528,7 +532,7 @@ button {
 }
 
 .intro-text {
-  font-size: clamp(44px, 5.5vw, 80px);
+  font-size: clamp(36px, 4.5vw, 66px);
   font-weight: 300;
   line-height: 1.15;
   letter-spacing: -0.02em;
@@ -583,12 +587,13 @@ button {
   grid-column: 3 / 11;
   grid-row: 1;
   align-self: center;
+  margin-top: -1.5vh;
   justify-self: center;
   text-align: center;
   pointer-events: auto;
   font-family: 'PPNeueMontreal', system-ui, sans-serif;
   font-weight: 400;
-  font-size: clamp(28px, 3.5vw, 52px);
+  font-size: clamp(22px, 2.8vw, 42px);
   color: var(--text-primary);
   transition: color 0.35s ease, transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: normal;
@@ -816,8 +821,8 @@ button {
 
 .btn-prev {
   position: fixed;
-  bottom: 0;
-  left: 0;
+  bottom: 3vh;
+  left: calc(var(--ph) * 0.6);
   z-index: 10;
   pointer-events: auto;
   display: inline-flex;
@@ -913,7 +918,7 @@ button {
 .pre-comic-q2 {
   font-family: 'PPNeueCorp', sans-serif;
   font-weight: 500;
-  font-size: clamp(36px, 5.5vw, 72px);
+  font-size: clamp(30px, 4.4vw, 58px);
   color: #fe80fe;
   line-height: 1.1;
   opacity: 0;
@@ -924,7 +929,7 @@ button {
 .pre-comic-q4 {
   font-family: 'PPNeueCorp', sans-serif;
   font-weight: 500;
-  font-size: clamp(36px, 5.5vw, 72px);
+  font-size: clamp(30px, 4.4vw, 58px);
   color: #fe80fe;
   line-height: 1.1;
   opacity: 0;
@@ -1204,7 +1209,7 @@ button {
   text-align: center;
   font-family: 'PPNeueCorp', sans-serif;
   font-weight: 500;
-  font-size: clamp(36px, 5.5vw, 72px);
+  font-size: clamp(30px, 4.4vw, 58px);
   color: #fe80fe;
   line-height: 1.1;
   opacity: 0;
@@ -1289,17 +1294,8 @@ button {
   top:   calc(55% - var(--char-w) * 0.275);
 }
 
-/* Dev preview: these three are clickable (cycles through that question's
-   answers) once visible — see ComicRevealInteraction._cyclePanel. */
 .comic-panel-q4.visible {
   transform: translateX(0);
-}
-
-.comic-panel-q1.visible,
-.comic-panel-q4.visible,
-.comic-panel-q5.visible {
-  pointer-events: auto;
-  cursor: pointer;
 }
 
 /* Solid-color rectangle behind the Q4 illustration only (pope/news/con/bill) —
@@ -1311,7 +1307,7 @@ button {
   background: #ff88fc;
   z-index: 1; /* behind the <img> art (z-index 2), so bleed renders on top of it */
   left: calc(var(--ph) + 8 * (var(--col) + var(--comic-gap)) + var(--comic-gap));
-  width: calc(3.75 * (var(--col) + var(--comic-gap)));
+  width: calc(3.4 * (var(--col) + var(--comic-gap))); /* narrower than the old 3.75 — bigger right margin */
   top: var(--sg-top);
   height: calc(12 * var(--sg-row)); /* full secondary-grid height, reaches the bottom margin */
 }
@@ -1392,7 +1388,7 @@ button {
 
 .btn-results {
   position: fixed;
-  bottom: 0;
+  bottom: 3vh;
   z-index: 10;
   display: inline-flex;
   align-items: center;
@@ -1414,14 +1410,14 @@ button {
 }
 
 .btn-try-again {
-  left: 0;
+  left: calc(var(--ph) * 0.6);
   background: transparent;
   color: #6d1631;
   border: 1.5px solid #6d1631;
 }
 
 .btn-share {
-  right: 0;
+  right: calc(var(--ph) * 0.6);
   width: auto;
   white-space: nowrap;
   justify-content: center;
@@ -1458,7 +1454,7 @@ button {
    advance/retreat one stage per click, same pace as one scroll tick used to. */
 #comic-nav-arrows {
   position: fixed;
-  bottom: 0;
+  bottom: 3vh;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -1499,48 +1495,6 @@ button {
 }
 
 .comic-nav-arrow:hover { opacity: 0.75; }
-
-/* ===================== DEV BUTTON ===================== */
-#btn-dev-q2      { left: 10px;  }
-#btn-dev-q3      { left: 70px;  }
-#btn-dev-q4      { left: 130px; }
-#btn-dev-q5      { left: 190px; }
-#btn-dev-q6      { left: 250px; }
-#btn-dev-comic    { left: 310px; }
-#btn-dev-comic-end { left: 480px; }
-
-.btn-dev-results {
-  position: fixed;
-  bottom: 16px;
-  z-index: 9999;
-  pointer-events: auto;
-  background: rgba(0,0,0,0.6);
-  color: #fff;
-  font-size: 12px;
-  padding: 6px 16px;
-  border-radius: 100px;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-/* Dev cycle-result button — top-right corner, always on top */
-#btn-dev-cycle-result {
-  position: fixed;
-  top: 16px;
-  right: 16px;
-  z-index: 9999;
-  background: rgba(0,0,0,0.6);
-  color: #fff;
-  font-size: 12px;
-  padding: 6px 16px;
-  border-radius: 100px;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-  pointer-events: auto;
-  display: none;
-}
 
 /* ===================== Q1 LABEL OFFSET PANEL ===================== */
 .q1-label-panel {
@@ -2509,8 +2463,8 @@ body.art-is-showing #screen-question * { cursor: auto !important; }
 .q-intro-heading {
   font-family: 'PPNeueCorp', sans-serif;
   font-weight: 500;
-  font-size: clamp(70px, 12vw, 190px);
-  line-height: 0.9;
+  font-size: clamp(56px, 9.5vw, 152px);
+  line-height: 0.78;
   letter-spacing: -0.01em;
   color: #5e0015;
 }
@@ -2518,10 +2472,17 @@ body.art-is-showing #screen-question * { cursor: auto !important; }
 .q-intro-blame {
   font-family: 'PPNeueCorp', sans-serif;
   font-weight: 100;
-  font-size: clamp(70px, 12vw, 190px);
+  font-size: clamp(56px, 9.5vw, 152px);
   line-height: 0.9;
   letter-spacing: -0.01em;
   color: #5e0015;
+  /* Compensates for .q-intro-heading's tighter line-height above — that
+     only shrinks the gap BETWEEN the heading's own wide-weight lines, but
+     as a side effect it also shrinks the heading block's total height,
+     pulling this separate sibling element up too close. Restoring some of
+     that space here keeps the heading lines tight while the gap to this
+     (thin-weight) line stays comfortable. */
+  margin-top: 0.12em;
 }
 
 #screen-question.art-showing .q2-overlay,
@@ -2858,7 +2819,6 @@ body.art-is-showing #screen-question * { cursor: auto !important; }
   flex-direction: column;
   z-index: 1000;
   pointer-events: none;
-  overflow: hidden;
 }
 
 #btn-next { display: none !important; }
@@ -2878,6 +2838,29 @@ body.art-is-showing #screen-question * { cursor: auto !important; }
 #answer-sidebar.sb-merging .sb-q1-ring {
   opacity: 0 !important;
   transition: none !important;
+}
+
+/* Dark blurred glow at screen center during the icon-suck exit animation —
+   grows in as the icons arrive/swirl there, shrinks away once they're gone.
+   See playExitAnimation() in sidebar.js. */
+.sb-exit-glow {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: 260px;
+  height: 260px;
+  transform: translate(-50%, -50%) scale(0);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(20,0,8,0.6) 0%, rgba(20,0,8,0.32) 45%, rgba(20,0,8,0) 72%);
+  filter: blur(16px);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9998; /* just under the icon clones (9999) */
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease;
+}
+.sb-exit-glow.sb-exit-glow-visible {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
 }
 
 .sb-progress-indicator {
@@ -3376,6 +3359,11 @@ body.art-is-showing #screen-question * { cursor: auto !important; }
   background: #5e0015 !important;
   border-color: #fe80fe;
   cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.sb-bubble.sb-next-inline:hover {
+  opacity: 0.6;
 }
 
 .sb-next-inline-label {
@@ -3483,6 +3471,12 @@ body.sb-cursor-none .globe-container {
 .sb-custom-cursor.sb-cursor-scroll {
   width: 64px;
   transform: translate(-50%, -50%);
+  opacity: 0.5;
+}
+
+.sb-custom-cursor.sb-cursor-click {
+  width: 80px;
+  transform: translate(-50%, -15%) rotate(0deg);
   opacity: 0.5;
 }
 
@@ -3598,7 +3592,7 @@ body.sb-cursor-none .globe-container {
 .comic-to-results {
   position: absolute;
   left: 50%;
-  bottom: 0;
+  bottom: 3vh;
   transform: translateX(-50%) translateY(12px);
   padding: 0 36px;
   height: 60px;
@@ -3681,7 +3675,7 @@ body.sb-cursor-none .globe-container {
   margin: 0;
   font-family: 'PPNeueCorp', sans-serif;
   font-weight: 500;
-  font-size: clamp(80px, 14vw, 210px);
+  font-size: clamp(60px, 11vw, 168px);
   line-height: 0.75;
   letter-spacing: -0.01em;
   color: #5e0015;
@@ -3691,14 +3685,39 @@ body.sb-cursor-none .globe-container {
 }
 .comic-result-char-img.slide-in { opacity: 1; transform: translateY(0); }
 
+.comic-result-eyebrow {
+  position: absolute;
+  top: calc(var(--pv) * 1.5);
+  left: 50%;
+  transform: translateX(-50%) translateY(28px);
+  width: 100%;
+  margin: 0;
+  text-align: center;
+  z-index: 18;
+  pointer-events: none;
+  font-family: 'PPNeueCorp', sans-serif;
+  font-weight: 500;
+  font-size: clamp(30px, 3.2vw, 46px);
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: #5e0015;
+  opacity: 0;
+  transition: opacity 0.7s ease, transform 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.comic-result-eyebrow.slide-in { opacity: 1; transform: translateX(-50%) translateY(0); }
+
 .comic-result-desc {
   margin: 5vh 0 0;
   font-family: 'PPNeueMontreal', system-ui, sans-serif;
   font-weight: 400;
-  font-size: 26.5px;
+  font-size: clamp(18px, 1.5vw, 27px);
   line-height: 1.2;
   color: var(--text-primary);
-  max-width: calc(3.8 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 3*var(--gap));
+  max-width: calc(5.2 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 4.2*var(--gap));
+  /* Balances line lengths so a lone last word never gets orphaned onto
+     its own line — Chrome/Safari support it, older browsers just ignore
+     it and fall back to normal wrapping. */
+  text-wrap: balance;
   opacity: 0;
   transform: translateY(20px);
   transition: opacity 0.7s ease, transform 0.9s cubic-bezier(0.4, 0, 0.2, 1);
@@ -3706,7 +3725,7 @@ body.sb-cursor-none .globe-container {
 .comic-result-desc.slide-in { opacity: 1; transform: translateY(0); }
 
 .comic-result-stat {
-  margin: 6vh 0 0;
+  margin: 4vh 0 0;
   display: inline-block;
   width: fit-content;
   padding: 10px 22px;
@@ -3752,13 +3771,18 @@ body.sb-cursor-none .globe-container {
 /* ---- Per-result sizing overrides (mirror the #screen-results overrides) ---- */
 
 #screen-comic-reveal.result-knowitall .comic-result-art {
-  width: calc(4.8 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 3.8*var(--gap));
+  width: calc(4.55 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 3.8*var(--gap));
   right: calc(var(--ph) * 2 + (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + var(--gap));
-  bottom: calc(var(--pv) * 1.5);
+  bottom: calc(var(--pv) * 0.8); /* lower than before — was overlapping the title text */
 }
 
 #screen-comic-reveal.result-clueless .comic-result-art {
-  width: calc(4 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 3*var(--gap));
+  /* width is vw-based but height is auto (aspect-locked) — on a wide-but-
+     not-proportionally-taller screen that let this figure (helmet + "WHAT?!"
+     bubble reach well above his head) grow tall enough to crop off the top
+     of the viewport. Capping with a vh value keeps it from ever exceeding
+     the actual available vertical space, regardless of width. */
+  width: min(calc(4 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 3*var(--gap)), 58vh);
   right: calc(var(--ph) * 2 + (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + var(--gap));
 }
 
@@ -3774,6 +3798,65 @@ body.share-mode #btn-restart {
   opacity: 0 !important;
   pointer-events: none !important;
 }
+
+/* ── Share card branding badge ────────────────────────────────────────────
+   Logo + broken two-line wordmark identifying which quiz the card came
+   from. Same structure on both cards — colored light pink on the answers
+   (comic) card, burgundy on the result card. Hidden outside share mode. */
+.share-brand-badge {
+  display: none;
+  position: absolute;
+  z-index: 25;
+  align-items: center;
+  gap: 0.6em;
+  pointer-events: none;
+}
+body.share-mode .share-brand-badge { display: flex; }
+
+.share-brand-logo {
+  width: clamp(28px, 2.4vw, 40px);
+  height: clamp(28px, 2.4vw, 40px);
+  flex-shrink: 0;
+  display: block;
+}
+/* newlogo.svg is stroke-only (fill:none) — a CSS mask rasterizes it and
+   relies on filled-pixel alpha, so a 1.5px stroke at this size barely
+   renders. Embedding the path markup inline (see index.html / share.js)
+   and coloring the stroke directly via currentColor is reliable instead. */
+.share-brand-logo svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.share-brand-logo svg path {
+  fill: none;
+  stroke: currentColor;
+  stroke-miterlimit: 10;
+  stroke-width: 1.5px;
+}
+
+.share-brand-text {
+  font-family: 'PPNeueCorp', sans-serif;
+  font-weight: 500;
+  font-size: clamp(14px, 1.3vw, 20px);
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+}
+
+.share-brand-badge-result {
+  bottom: calc(var(--pv) * 1.5);
+  left: calc(var(--ph) + 2vw);
+  color: #5e0015;
+}
+
+.share-brand-badge-answers {
+  top: var(--comic-pv, 24px);
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fed5d6;
+  text-align: center;
+}
+.share-brand-badge-answers .share-brand-text { text-align: center; }
 
 /* ── Share card base ──────────────────────────────────────────────────────────
    Both cards are fixed inset:0 (100vw × 100vh). In share mode they shrink to
@@ -3865,11 +3948,20 @@ body.share-result.share-answers #share-comic-frame {
   z-index: 6;
 }
 
-/* Speech bubble injected into the share comic frame */
+/* Speech bubble injected into the share comic frame. Only WIDTH is set by
+   JS (see _addShareBubble) — height used to be left to auto (driven by the
+   text's own content height), which stretched/squished the background SVG
+   via object-fit:fill to match instead of the other way around, letting
+   text spill past the drawn oval into the tail area. Locking the wrapper's
+   aspect-ratio to the SVG's own (212.33 / 133.05) makes height always
+   follow width proportionally, so the artwork never distorts; overflow:
+   hidden is a safety net if text is ever still too long to fit. */
 .share-speech-bubble {
   position: absolute;
   z-index: 20;
   pointer-events: none;
+  aspect-ratio: 212.33 / 133.05;
+  overflow: hidden;
 }
 
 .share-speech-bubble-img {
@@ -3939,7 +4031,7 @@ body.share-result.share-answers #share-comic-frame {
 /* Share selector pills — bottom-center, flush to bottom edge */
 #share-nav {
   position: fixed;
-  bottom: 0;
+  bottom: 3vh;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
