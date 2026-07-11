@@ -31,8 +31,8 @@
 :root {
   /* Q3 multi-select tuning */
   --next-height:        140px;  /* fixed height of the Next button */
-  --q3-chip-gap:        24px;  /* space between word chips */
-  --q3-bubble-grow:     2;     /* vertical stretch of bubble 3 (higher = taller) */
+  --q3-chip-gap:        clamp(6px, 2.5vh, 24px);  /* space between word chips */
+  --q3-bubble-grow:     2.8;   /* vertical stretch of bubble 3 (higher = taller) */
   --bg:               #FFFCE2;
   --text-primary:     #550017;
   --text-secondary:   rgba(85,0,23,0.5);
@@ -111,8 +111,8 @@ button {
 
 .prequestion-hint {
   margin-top: 25px;
-  font-size: 26.5px;
-  line-height: 33px;
+  font-size: clamp(16px, 1.53vw, 28px);
+  line-height: 1.25;
   color: #fe80fe;
   font-family: 'PPNeueMontreal', system-ui, sans-serif;
   font-weight: 400;
@@ -161,7 +161,7 @@ button {
 
 .start-tagline {
   margin-top: 5vh;
-  font-size: 26.5px;
+  font-size: clamp(16px, 1.53vw, 28px);
   line-height: 1.27;
   color: #fe80fe;
   font-family: 'PPNeueMontreal', system-ui, sans-serif;
@@ -171,7 +171,7 @@ button {
 
 .start-sub {
   margin-top: 25px;
-  font-size: 26.5px;
+  font-size: clamp(16px, 1.53vw, 28px);
   line-height: 1.27;
   color: #fe80fe;
   font-family: 'PPNeueMontreal', system-ui, sans-serif;
@@ -235,7 +235,7 @@ button {
 .about-container {
   position: absolute;
   top: calc(var(--pv) * 7);
-  left: calc(100vw - var(--ph) - 430px);
+  left: calc(100vw - var(--ph) - 25vw);
   z-index: 200;
   display: flex;
   flex-direction: column;
@@ -251,7 +251,7 @@ button {
 
 .about-img,
 .about-hover-img {
-  width: 145px;
+  width: clamp(100px, 8.4vw, 175px);
   height: auto;
   display: block;
   cursor: pointer;
@@ -271,7 +271,7 @@ button {
 
 .about-textbox {
   display: none;
-  width: 430px;
+  width: clamp(300px, 25vw, 520px);
   height: auto;
   margin-top: 20px;
 }
@@ -283,13 +283,13 @@ button {
 .about-text {
   display: none;
   position: absolute;
-  top: calc(145px + 20px);
+  top: calc(clamp(100px, 8.4vw, 175px) + 20px);
   left: 0;
-  width: 430px;
-  padding: 36.5px;
+  width: clamp(300px, 25vw, 520px);
+  padding: clamp(18px, 2.1vw, 42px);
   box-sizing: border-box;
   margin: 0;
-  font-size: 26.5px;
+  font-size: clamp(16px, 1.53vw, 28px);
   color: #fe80fe;
   font-family: 'PPNeueMontreal', system-ui, sans-serif;
   line-height: 1.27;
@@ -324,8 +324,8 @@ button {
   position: absolute;
   bottom: 12vh;
   left: calc(var(--ph) + 4.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 7*var(--gap));
-  width: calc((4.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 3.5*var(--gap)) * 1.6);
-  height: calc((4.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 3.5*var(--gap)) * 1.6);
+  width: min(calc((4.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 3.5*var(--gap)) * 1.6), 75vh, 820px);
+  height: min(calc((4.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 3.5*var(--gap)) * 1.6), 75vh, 820px);
   z-index: 100;
   pointer-events: none;
 }
@@ -447,7 +447,7 @@ button {
 }
 
 .illustration-img.doom-img {
-  padding: calc(var(--pv) * 2 + 1.4em) calc(8vh + 260px) calc(var(--pv) * 2 + 2.6em) var(--ph);
+  padding: calc(var(--pv) * 2 + 1.4em) calc(8vh + 15vw) calc(var(--pv) * 2 + 2.6em) var(--ph);
   object-fit: contain;
   object-position: bottom center;
 }
@@ -461,7 +461,7 @@ button {
 .q1-img-humans {
   padding-top:   calc(var(--pv) + 0.5em + 8vh);
   padding-left:  calc(var(--ph) + 1vw);
-  padding-right: calc(8vh + 200px + 3vw);
+  padding-right: calc(8vh + 11.6vw + 3vw);
 }
 
 .q1-img-ai {
@@ -739,7 +739,7 @@ button {
 .carousel-wrapper:active { cursor: grabbing; }
 
 .carousel-wrapper.slide-right {
-  transform: translateY(-50%) translateX(500px);
+  transform: translateY(-50%) translateX(calc(100% + 20px));
 }
 
 
@@ -1834,7 +1834,7 @@ button {
   margin: 0;
   pointer-events: none;
   font-family: 'PPNeueMontreal', sans-serif;
-  font-size: 26.5px;
+  font-size: clamp(16px, 1.53vw, 28px);
   color: #6d1631;
   opacity: 0.7;
 }
@@ -2351,7 +2351,7 @@ body.art-is-showing #screen-question * { cursor: auto !important; }
   align-items: center;
   justify-content: center;
   font-family: 'PPNeueMontreal', system-ui, sans-serif;
-  font-size: 26.5px;
+  font-size: clamp(16px, 1.53vw, 28px);
   color: #fe80fe;
   pointer-events: none;
 }
@@ -2843,7 +2843,7 @@ body.art-is-showing #screen-question * { cursor: auto !important; }
   width: 100%;
   height: 100%;
   object-fit: contain;
-  padding: calc(var(--pv) + 0.5em) calc(8vh + 260px) calc(var(--pv) * 2 + 2.6em) var(--ph);
+  padding: calc(var(--pv) + 0.5em) calc(8vh + 15vw) calc(var(--pv) * 2 + 2.6em) var(--ph);
 }
 
 /* ─── Answer Sidebar ──────────────────────────────────────────────────────── */
@@ -2858,6 +2858,7 @@ body.art-is-showing #screen-question * { cursor: auto !important; }
   flex-direction: column;
   z-index: 1000;
   pointer-events: none;
+  overflow: hidden;
 }
 
 #btn-next { display: none !important; }
@@ -3214,7 +3215,7 @@ body.art-is-showing #screen-question * { cursor: auto !important; }
 /* ── Multi-select chips (Q3) ─────────────────────────────────────────────── */
 .sb-multiselect-hint {
   position: absolute;
-  top: 28px;
+  top: clamp(14px, 3.5vh, 36px);
   left: 0;
   right: 0;
   text-align: center;
@@ -3243,7 +3244,7 @@ body.art-is-showing #screen-question * { cursor: auto !important; }
   gap: var(--q3-chip-gap);
   width: 100%;
   height: 100%;
-  padding: 8px 8%;
+  padding: clamp(14px, 3vh, 24px) 8%;
   box-sizing: border-box;
   transition: padding 0.3s ease, justify-content 0s;
   opacity: 0;
@@ -3253,16 +3254,22 @@ body.art-is-showing #screen-question * { cursor: auto !important; }
   opacity: 1;
 }
 .sb-chip-list.sb-chip-list-selected {
-  justify-content: flex-start;
-  padding-top: 88px;
+  justify-content: space-evenly;
+  padding-top: clamp(36px, 7.5vh, 78px);
+  padding-bottom: clamp(28px, 5vh, 44px);
+}
+
+/* Grow Q3 bubble slightly more when 2+ chips are selected */
+.sb-bubble.sb-multi-select:has(.sb-chip-selected ~ .sb-chip-selected) {
+  flex-grow: 3.4 !important;
 }
 .sb-chip {
   position: relative;
   border: 1.5px solid transparent;
   border-radius: 999px;
-  padding: 8px 0;
+  padding: clamp(3px, 0.8vh, 8px) 0;
   font-family: 'PPNeueMontreal', sans-serif;
-  font-size: clamp(18px, 1.8vw, 26px);
+  font-size: clamp(13px, min(1.8vw, 3vh), 26px);
   color: #5e0015;
   text-align: center;
   cursor: pointer;
