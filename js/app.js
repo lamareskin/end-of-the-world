@@ -1210,16 +1210,19 @@
       hint.style.opacity = '0';
     }
 
+    const moon = document.getElementById('start-moon');
     const slideEls = [
-      { el: gc,                                     delay: 0   },
-      { el: document.querySelector('.start-hero'),  delay: 80  },
+      { el: gc,                                          delay: 0   },
+      { el: moon,                                        delay: 40  },
+      { el: document.querySelector('.start-hero'),       delay: 80  },
     ].filter(e => e.el);
 
-    // Freeze globe at its current animated Y position, then stop animation
-    const gcMatrix = window.getComputedStyle(gc).transform;
+    // Freeze globe float-inner at its current animated Y position, then stop animation
+    const gcInner = gc.querySelector('.globe-float-inner') || gc;
+    const gcMatrix = window.getComputedStyle(gcInner).transform;
     const gcCurrentY = gcMatrix !== 'none' ? new DOMMatrix(gcMatrix).m42 : 0;
-    gc.style.transform = `translateY(${gcCurrentY}px)`;
-    gc.style.animation = 'none';
+    gcInner.style.transform = `translateY(${gcCurrentY}px)`;
+    gcInner.style.animation = 'none';
 
     slideEls.forEach(({ el, delay }) => {
       setTimeout(() => {
@@ -1247,7 +1250,7 @@
       });
       screenStart.style.transition = 'none';
       screenStart.style.background = '';
-      gc.style.animation = '';
+      (gc.querySelector('.globe-float-inner') || gc).style.animation = '';
       screenStart._zooming = false;
     }, lastDelay + SLIDE_DUR + 80);
   }
@@ -1275,13 +1278,14 @@
     // Reset start screen elements to their original visible state
     const gc   = document.getElementById("globe-container");
     const hero = document.querySelector(".start-hero");
-    [gc, hero].forEach(el => {
+    const moon = document.getElementById("start-moon");
+    [gc, hero, moon].forEach(el => {
       if (!el) return;
       el.style.transition = 'none';
       el.style.transform  = '';
       el.style.opacity    = '';
     });
-    gc.style.animation = '';
+    (gc.querySelector('.globe-float-inner') || gc).style.animation = '';
     screenStart.style.transition = 'none';
     screenStart.style.background = '';
     screenStart._zooming = false;

@@ -328,6 +328,11 @@ button {
   height: calc((4.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 3.5*var(--gap)) * 1.6);
   z-index: 100;
   pointer-events: none;
+}
+
+.globe-float-inner {
+  position: absolute;
+  inset: 0;
   animation: globe-float 4s ease-in-out infinite;
 }
 
