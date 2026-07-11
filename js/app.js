@@ -36,14 +36,11 @@
   const qIntroTitle     = document.getElementById("q-intro-title");
   const centerHint      = document.getElementById("center-hint");
 
-  // Pre-comic stepped text sequence (see _runPreComicSequence) + its
-  // compressed progress sidebar (see _showComicProgressSidebar).
   const preComicStepA      = document.getElementById("preComic-stepA");
   const preComicStepB      = document.getElementById("preComic-stepB");
   const preComicQ2Line     = document.getElementById("preComic-q2Line");
   const preComicStepC      = document.getElementById("preComic-stepC");
   const preComicClickHint  = document.getElementById("preComic-clickHint");
-  const comicProgressSidebar = document.getElementById("comic-progress-sidebar");
 
   let carousel = null;
   let artTimer = null;
@@ -610,11 +607,11 @@
       {
         type: 'multi-select',
         words: [
-          { label: 'Stress', icon: 'stress.svg' },
-          { label: 'Fear',   icon: 'fear.svg'   },
-          { label: 'Denial', icon: 'denial.svg' },
-          { label: 'Relief', icon: 'relief.svg' },
-          { label: 'Shock',  icon: 'shock.svg'  },
+          { label: 'Stress', icon: 'smallstress.svg' },
+          { label: 'Fear',   icon: 'smallfear.svg'   },
+          { label: 'Denial', icon: 'smalldenial.svg' },
+          { label: 'Relief', icon: 'smallrelief.svg' },
+          { label: 'Shock',  icon: 'smallshock.svg'  },
         ],
         defaultTitle: { pink: 'What', rest: ' will be your reaction to the end of the world?' },
         titleConfigs: [
@@ -718,6 +715,7 @@
         stageFrames: [0, 0, 15, 30, 60],
         maxFrame: 60,
         answerIcon: 'sword.svg',
+        answerIcons: ['1.svg', '2.svg', '3.svg', '4.svg'],
         knobIcon: 'sword.svg',
         defaultTitle: { prefix: 'Do you think the world will be ', pink: 'a simulation', rest: '?' },
         titleConfigs: [
@@ -764,10 +762,19 @@
     resultCharEl:     document.getElementById('comic-result-char-img'),
     resultArtEl:      document.getElementById('comic-result-art'),
     resultDescEl:     document.getElementById('comic-result-desc'),
+    resultStatEl:     document.getElementById('comic-result-stat'),
     toResultsEl:      document.getElementById('comic-to-results'),
+    starsCanvasEl:    document.getElementById('comic-stars-canvas'),
   });
 
+  comicReveal.onProgressStep = () => sidebarInteraction.advanceProgress();
+  comicReveal.onResultsShown = () => sidebarInteraction.dismissProgress();
+
   const shareViewer = new ShareViewer({ comicReveal });
+
+  // expose refs so the dev cycle button (outside IIFE) can reach them
+  window._devScreenComicReveal = screenComicReveal;
+  window._devComicReveal       = comicReveal;
 
   const _dndMap   = { q1: q1Interaction, q4: q4Interaction, q3dnd: q3DndInteraction, q5dnd: q5DndInteraction };
   const _scrubMap = { q2: q2Interaction, q6: q6Interaction };
@@ -916,8 +923,10 @@
   function _q2Sentence() {
     const idx = State.getAnswer(1);
     if (idx === null || idx === undefined) return '';
-    if (idx === 3) return "Someday when I'm too old to care.";
-    return `Some random day ${QUESTIONS[1].answers[idx].text}.`;
+    if (idx === 3) return "Someday when I'm too old to care,";
+    const t = QUESTIONS[1].answers[idx].text;
+    const tCap = t.charAt(0).toUpperCase() + t.slice(1);
+    return `<span style="white-space:nowrap">Some random day</span><br>${tCap},`;
   }
 
   // Q4 ("who breaks the news?") answer -> the pre-comic statement. Each
@@ -931,11 +940,11 @@
       'A conspiracy theorist',
       'The News network',
     ];
-    return `${phrasing[idx]} will tell you...`;
+    return `${phrasing[idx]} will<br>tell you...`;
   }
 
-  let _preComicTimer   = null;
-  let _preComicClickCb = null; // set while waiting for a user click
+  let _preComicTimer    = null;
+  let _preComicClickCb  = null; // set while waiting for a user click
 
   // Waits for ms with no click-skip (used for the loading step).
   function _preComicDelay(ms) {
@@ -963,52 +972,105 @@
     }
   });
 
-  // New sequence:
-  //   Step A — "let's see what you answered" shown 3s (no click skip), then fades out.
-  //   Step B — someday text (Q2) fades in big, two lines. "click to continue" hint appears.
-  //            First click → Q4 line fades in below it. Hint stays.
+  // Sequence:
+  //   [blank] — waits for readyPromise (sidebar exit animation done)
+  //   Step A — "let's see what you answered" fades in; click to advance.
+  //   Step B — someday text (Q2) fades in big. "click to continue" hint appears.
+  //            First click → Q4 line fades in below it.
   //            Second click → everything fades out, onDone() called.
-  async function _runPreComicSequence(onDone) {
-    // Step A: loading screen, auto 3s
-    preComicStepA.classList.add('visible');
-    await _preComicDelay(3000);
-    preComicStepA.classList.remove('visible');
-    await _preComicDelay(600); // wait for fade-out
+  async function _runPreComicSequence(readyPromise, onDone) {
+    // Wait for sidebar vertical-stretch start before showing anything
+    await readyPromise;
 
-    // Step B: show Q2 someday text
-    const q2text = _q2Sentence();
-    // Split into two lines after the first sentence fragment ("Some random day" / rest)
-    const splitIdx = q2text.indexOf(' ', q2text.indexOf(' ') + 1); // after second word
-    // Use a <br> by splitting on " in " or falling back to word-wrap via narrower max-width
-    preComicQ2Line.innerHTML = q2text; // let CSS width force two-line wrap
-    preComicStepB.classList.add('visible');
-    preComicQ2Line.classList.add('visible');
+    // Init progress — 3 loading clicks + 8 comic stages + q3 extras + 1 result trigger
+    const q3Raw    = State.getAnswer(2);
+    const q3List   = Array.isArray(q3Raw) ? q3Raw : (q3Raw !== null ? [q3Raw] : []);
+    const q3Extras = Math.max(0, q3List.length - 1);
+    sidebarInteraction.initProgress(3 + 8 + q3Extras + 1);
+
+    // Step A: "let's see your answers" + click hint
+    preComicStepA.classList.add('visible');
     preComicClickHint.classList.add('visible');
     screenLoading.style.cursor = 'pointer';
-
-    // First click: reveal Q4 line
     await _preComicWaitClick();
-    preComicStepC.textContent = _q4Sentence();
-    preComicStepC.classList.add('visible');
-
-    // Second click: fade everything out and start comic
-    await _preComicWaitClick();
+    sidebarInteraction.advanceProgress(); // step 1
     screenLoading.style.cursor = 'default';
-    preComicStepB.classList.remove('visible');
-    preComicQ2Line.classList.remove('visible');
-    preComicStepC.classList.remove('visible');
+    preComicStepA.classList.remove('visible');
     preComicClickHint.classList.remove('visible');
     await _preComicDelay(600);
 
+    // Steps B1 / B2 — nav arrows drive navigation, not screen clicks
+    const navArrowsEl = document.getElementById('comic-nav-arrows');
+    const navFwdEl    = document.getElementById('comic-nav-forward');
+    const navBackEl   = document.getElementById('comic-nav-back');
+
+    // Helper: waits for a nav arrow click, intercepts before comic-reveal handles it.
+    // Returns 'forward' or 'back'.
+    function _waitNavClick(allowBack) {
+      return new Promise(resolve => {
+        function onFwd(e) {
+          e.stopImmediatePropagation();
+          navFwdEl.removeEventListener('click', onFwd, true);
+          navBackEl.removeEventListener('click', onBack, true);
+          resolve('forward');
+        }
+        function onBack(e) {
+          e.stopImmediatePropagation();
+          navFwdEl.removeEventListener('click', onFwd, true);
+          navBackEl.removeEventListener('click', onBack, true);
+          resolve('back');
+        }
+        navFwdEl.addEventListener('click', onFwd, true);
+        if (allowBack) navBackEl.addEventListener('click', onBack, true);
+      });
+    }
+
+    // Prepare text content
+    preComicQ2Line.innerHTML   = _q2Sentence();
+    preComicStepC.innerHTML    = _q4Sentence();
+
+    // B1: Q2 line alone, forward arrow only
+    preComicStepB.classList.add('visible');
+    preComicQ2Line.classList.add('visible');
+    navFwdEl.classList.add('visible');
+
+    await _waitNavClick(false);
+    sidebarInteraction.advanceProgress(); // step 2
+
+    // B2: Q4 line appears below, back arrow becomes visible too.
+    // Clicking back returns to B1; clicking forward exits to comic.
+    let inB2 = true;
+    preComicStepC.classList.add('visible');
+    navBackEl.classList.add('visible');
+
+    while (true) {
+      if (inB2) {
+        const dir = await _waitNavClick(true);
+        if (dir === 'forward') break; // done — exit to comic
+        // back: collapse to B1
+        preComicStepC.classList.remove('visible');
+        navBackEl.classList.remove('visible');
+        inB2 = false;
+      } else {
+        // B1: only forward available
+        await _waitNavClick(false);
+        preComicStepC.classList.add('visible');
+        navBackEl.classList.add('visible');
+        inB2 = true;
+      }
+    }
+
+    sidebarInteraction.advanceProgress(); // step 3
+
+    // Fade everything out and go to comic
+    navFwdEl.classList.remove('visible');
+    navBackEl.classList.remove('visible');
+    preComicStepB.classList.remove('visible');
+    preComicQ2Line.classList.remove('visible');
+    preComicStepC.classList.remove('visible');
+    await _preComicDelay(600);
+
     onDone();
-  }
-
-  function _showComicProgressSidebar() {
-    comicProgressSidebar.classList.add('visible');
-  }
-
-  function _hideComicProgressSidebar() {
-    comicProgressSidebar.classList.remove('visible');
   }
 
   // Called on restart/home — abandons any in-flight sequence (the pending
@@ -1016,11 +1078,10 @@
   // visible state so a replay starts clean.
   function _resetPreComicSequence() {
     clearTimeout(_preComicTimer);
-    _preComicClickCb = null;
+    _preComicClickCb  = null;
     screenLoading.style.cursor = 'default';
     [preComicStepA, preComicStepB, preComicQ2Line, preComicStepC, preComicClickHint]
       .forEach(el => el.classList.remove('visible'));
-    _hideComicProgressSidebar();
   }
 
   // ===================== INTRO SYSTEM =====================
@@ -1132,11 +1193,74 @@
 
   // --- Navigation ---;
 
-  btnStart.addEventListener("click", () => {
-    State.reset();
-    sidebarInteraction.show();
-    showQuestionWithArt(QUESTIONS[State.currentQuestion]);
-  });
+  function doStartQuiz() {
+    if (screenStart._zooming) return;
+    screenStart._zooming = true;
+
+    const SLIDE_DUR  = 1200; // ms each element slides up
+    const EASE       = 'cubic-bezier(0.4, 0, 0.2, 1)';
+    const BG_DUR     = 1400; // background crossfade duration
+
+    // Elements to slide up, in stagger order
+    const hint = document.getElementById("start-click-hint");
+    const gc   = document.getElementById("globe-container");
+    // Fade hint out instead of sliding
+    if (hint) {
+      hint.style.transition = 'opacity 300ms ease';
+      hint.style.opacity = '0';
+    }
+
+    const slideEls = [
+      { el: gc,                                     delay: 0   },
+      { el: document.querySelector('.start-hero'),  delay: 80  },
+    ].filter(e => e.el);
+
+    // Freeze globe at its current animated Y position, then stop animation
+    const gcMatrix = window.getComputedStyle(gc).transform;
+    const gcCurrentY = gcMatrix !== 'none' ? new DOMMatrix(gcMatrix).m42 : 0;
+    gc.style.transform = `translateY(${gcCurrentY}px)`;
+    gc.style.animation = 'none';
+
+    slideEls.forEach(({ el, delay }) => {
+      setTimeout(() => {
+        el.style.transition = `transform ${SLIDE_DUR}ms ${EASE}, opacity ${SLIDE_DUR * 0.6}ms ease ${SLIDE_DUR * 0.4}ms`;
+        el.style.transform  = 'translateY(-110vh)';
+        el.style.opacity    = '0';
+      }, delay);
+    });
+
+    // Background transitions from burgundy to Q1 pink
+    screenStart.style.transition = `background ${BG_DUR}ms ease`;
+    screenStart.style.background = '#ffebec';
+
+    const lastDelay = slideEls[slideEls.length - 1].delay;
+    setTimeout(() => {
+      State.reset();
+      sidebarInteraction.show();
+      showQuestionWithArt(QUESTIONS[State.currentQuestion]);
+
+      // Reset start screen elements silently for next visit
+      slideEls.forEach(({ el }) => {
+        el.style.transition = 'none';
+        el.style.transform  = '';
+        el.style.opacity    = '';
+      });
+      screenStart.style.transition = 'none';
+      screenStart.style.background = '';
+      gc.style.animation = '';
+      screenStart._zooming = false;
+    }, lastDelay + SLIDE_DUR + 80);
+  }
+
+  screenStart.addEventListener("click", doStartQuiz);
+
+  function showStartHint() {
+    const hint = document.getElementById("start-click-hint");
+    if (hint) hint.classList.add("visible");
+  }
+  screenStart.addEventListener("transitionend", () => {}, { once: true });
+  // show hint 1s after start screen becomes active
+  setTimeout(showStartHint, 1000);
 
   btnHome.addEventListener("click", () => {
     _clearIntro();
@@ -1144,9 +1268,36 @@
     screenQuestion.classList.remove("intro-active");
     carouselWrapper.classList.remove("slide-right");
     State.reset();
-    sidebarInteraction.hide();
+    sidebarInteraction.reset();
     comicReveal.reset();
     _resetPreComicSequence();
+
+    // Reset start screen elements to their original visible state
+    const gc   = document.getElementById("globe-container");
+    const hero = document.querySelector(".start-hero");
+    [gc, hero].forEach(el => {
+      if (!el) return;
+      el.style.transition = 'none';
+      el.style.transform  = '';
+      el.style.opacity    = '';
+    });
+    gc.style.animation = '';
+    screenStart.style.transition = 'none';
+    screenStart.style.background = '';
+    screenStart._zooming = false;
+
+    // Reset and re-show the hint after 1s
+    const hint = document.getElementById("start-click-hint");
+    if (hint) {
+      hint.style.transition = 'none';
+      hint.style.opacity    = '0';
+      hint.classList.remove('visible');
+      setTimeout(() => {
+        hint.style.transition = '';
+        hint.classList.add('visible');
+      }, 1000);
+    }
+
     showScreen(screenStart);
   });
 
@@ -1162,20 +1313,43 @@
       showQuestionWithArt(QUESTIONS[State.currentQuestion]);
     } else {
       _clearIntro();
-      // Prepping the legacy results screen must never block the transition to
-      // the loading/comic flow, so isolate it.
-      sidebarInteraction.hide();
-      _showComicProgressSidebar();
-      showScreen(screenLoading);
-      _runPreComicSequence(() => {
-        // Cross-fade: activate comic screen on top while loading screen fades out.
-        // Both screens are position:fixed inset:0, so they layer. The comic bg
-        // fades in over the loading bg for a seamless continuous feel.
+      _startComicLoading(() => {
         screenComicReveal.classList.add('active');
-        comicReveal.start(computeResult());
+        comicReveal.start(computeResult(), true);
         setTimeout(() => screenLoading.classList.remove('active'), 400);
       });
     }
+  }
+
+  // Shared helper — shows loading screen, runs the sidebar exit animation,
+  // then the pre-comic text sequence. Used by both the real flow and dev shortcuts.
+  // Pass sidebarVisible=false to skip showing the sidebar (e.g. → Result shortcut).
+  function _startComicLoading(onDone, { sidebarVisible = true } = {}) {
+    showScreen(screenLoading);
+
+    if (sidebarVisible) {
+      // Make sure the sidebar container is visible and at full width before animating
+      sidebarInteraction._container.style.display = 'flex';
+      sidebarInteraction._container.style.transition = 'none';
+      sidebarInteraction._container.style.width = 'calc(100vw / 12)';
+      sidebarInteraction._container.classList.add('sb-exiting');
+      // Snap bubbles to pink immediately — no transition on first appearance
+      sidebarInteraction._bubbles.forEach(b => { b.style.transition = 'none'; b.style.borderColor = '#ffb8d9'; });
+    }
+
+    let _sidebarReady;
+    const _sidebarReadyPromise = new Promise(resolve => { _sidebarReady = resolve; });
+    const _doSidebarDone = () => { _sidebarReady(); };
+
+    if (sidebarVisible) {
+      setTimeout(() => {
+        sidebarInteraction.playExitAnimation(_doSidebarDone, _sidebarReady);
+      }, 1400);
+    } else {
+      _sidebarReady();
+    }
+
+    _runPreComicSequence(_sidebarReadyPromise, onDone);
   }
 
   btnNext.addEventListener("click", _advanceQuestion);
@@ -1223,7 +1397,6 @@
     Object.values(_swipeMap).forEach(d => { d.hide(); d.reset(); });
     Object.values(_lottieMap).forEach(d => { d.hide(); d.reset(); });
     sidebarInteraction.reset();
-    sidebarInteraction.hide();
     comicReveal.reset();
     _resetPreComicSequence();
     showScreen(screenStart);
@@ -1232,6 +1405,28 @@
   // Share button click is handled inside ShareViewer constructor
 
   // --- Dev shortcuts ---
+
+  // Fills all 6 sidebar bubbles with random icons so the exit animation
+  // looks realistic when using shortcuts (→ Comic / → Comic End).
+  function _prefillSidebarRandom() {
+    const rand = arr => arr[Math.floor(Math.random() * arr.length)];
+
+    sidebarInteraction.markAnswered(0, rand(['humanicon.svg','aiicon.svg','cosmicicon.svg','godicon.svg']));
+    sidebarInteraction.markAnswered(1, rand(['5year.svg','20years.svg','60years.svg','oldage.svg']));
+
+    // Q3 multi-select: 1–3 random icons
+    const q3Pool = ['smallstress.svg','smallfear.svg','smalldenial.svg','smallrelief.svg','smallshock.svg'];
+    const q3Picked = q3Pool.sort(() => Math.random() - 0.5).slice(0, Math.ceil(Math.random() * 3));
+    sidebarInteraction.markAnswered(2, q3Picked[0], q3Picked);
+
+    sidebarInteraction.markAnswered(3, rand(['popeicon.svg','billicon.svg','conicon.svg','newsicon.svg']));
+
+    const q5Icons = [_svgUrl(window.ICON_DOOM), _svgUrl(window.ICON_NATURE), _svgUrl(window.ICON_LOVED), _svgUrl(window.ICON_RECKLESS), _svgUrl(window.ICON_SHOW)];
+    sidebarInteraction.markAnswered(4, rand(q5Icons));
+
+    sidebarInteraction.markAnswered(5, rand(['1.svg', '2.svg', '3.svg', '4.svg']));
+  }
+
   function _devGoTo(index) {
     State.reset();
     while (State.currentQuestion < index) State.goNext();
@@ -1248,10 +1443,9 @@
   btnDevComicEnd.addEventListener("click", () => {
     State.reset();
     for (let i = 0; i < 5; i++) { State.setAnswer(0); State.goNext(); }
-    sidebarInteraction.hide();
-    _showComicProgressSidebar();
-    showScreen(screenLoading);
-    _runPreComicSequence(() => {
+    sidebarInteraction.reset();
+    _prefillSidebarRandom();
+    _startComicLoading(() => {
       screenComicReveal.classList.add('active');
       comicReveal.start(computeResult());
       setTimeout(() => {
@@ -1273,11 +1467,46 @@
 
   btnDevComic.addEventListener("click", () => {
     State.reset();
-    for (let i = 0; i < 5; i++) { State.setAnswer(0); State.goNext(); }
-    sidebarInteraction.hide();
-    _showComicProgressSidebar();
-    showScreen(screenLoading);
-    _runPreComicSequence(() => {
+    sidebarInteraction.reset();
+    comicReveal.reset();
+
+    const rnd = arr => arr[Math.floor(Math.random() * arr.length)];
+    const rndIdx = n  => Math.floor(Math.random() * n);
+
+    // Q1 — cause of the end
+    const q1 = rndIdx(4);
+    State.setAnswer(q1); State.goNext();
+    sidebarInteraction.markAnswered(0, ['humanicon.svg','aiicon.svg','cosmicicon.svg','godicon.svg'][q1]);
+
+    // Q2 — when
+    const q2 = rndIdx(4);
+    State.setAnswer(q2); State.goNext();
+    sidebarInteraction.markAnswered(1, ['5year.svg','20years.svg','60years.svg','oldage.svg'][q2]);
+
+    // Q3 — emotions (multi-select, 1–3 random)
+    const q3Icons = ['smallstress.svg','smallfear.svg','smalldenial.svg','smallrelief.svg','smallshock.svg'];
+    const q3Count = Math.ceil(Math.random() * 3);
+    const q3Indices = [0,1,2,3,4].sort(() => Math.random() - 0.5).slice(0, q3Count);
+    State.setAnswer([...q3Indices]); State.goNext();
+    sidebarInteraction.markAnswered(2, q3Icons[q3Indices[0]], q3Indices.map(i => q3Icons[i]));
+
+    // Q4 — who tells you
+    const q4 = rndIdx(4);
+    State.setAnswer(q4); State.goNext();
+    sidebarInteraction.markAnswered(3, ['popeicon.svg','billicon.svg','conicon.svg','newsicon.svg'][q4]);
+
+    // Q5 — last day activity
+    const q5 = rndIdx(5);
+    const q5Icons = [_svgUrl(window.ICON_DOOM), _svgUrl(window.ICON_NATURE), _svgUrl(window.ICON_LOVED), _svgUrl(window.ICON_RECKLESS), _svgUrl(window.ICON_SHOW)];
+    State.setAnswer(q5); State.goNext();
+    sidebarInteraction.markAnswered(4, q5Icons[q5]);
+
+    // Q6 — simulation belief
+    const q6 = rndIdx(4);
+    State.setAnswer(q6); State.goNext();
+    sidebarInteraction.markAnswered(5, ['1.svg','2.svg','3.svg','4.svg'][q6]);
+
+    _startComicLoading(() => {
       screenComicReveal.classList.add('active');
       comicReveal.start(computeResult());
       setTimeout(() => screenLoading.classList.remove('active'), 400);
@@ -1307,3 +1536,28 @@
   }
   new MutationObserver(apply).observe(tray, { childList: true });
 })();
+
+// Dev: cycle result types
+document.getElementById('btn-dev-cycle-result').onclick = function () {
+  var KEYS = ['nonchalant', 'clueless', 'knowitall', 'runaway'];
+  var idx = (this._idx = ((this._idx || 0) + 1) % KEYS.length);
+  var key = KEYS[idx];
+  var r = QUIZ_RESULTS[key];
+  var screen = document.getElementById('screen-comic-reveal');
+  KEYS.forEach(function(k) { screen.classList.remove('result-' + k); });
+  screen.classList.add('result-' + key);
+  var charEl = document.getElementById('comic-result-char-img');
+  var artEl  = document.getElementById('comic-result-art');
+  var descEl = document.getElementById('comic-result-desc');
+  charEl.innerHTML   = r.title.replace('The ', 'The<br>');
+  descEl.textContent = r.desc;
+  artEl.src = r.art;
+  var statEl = document.getElementById('comic-result-stat');
+  if (statEl && window._devComicReveal) {
+    statEl.innerHTML = window._devComicReveal._buildStatText(key);
+    statEl.classList.add('slide-in');
+  }
+  charEl.classList.add('slide-in');
+  artEl.classList.add('slide-in');
+  descEl.classList.add('slide-in');
+};

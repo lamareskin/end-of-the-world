@@ -21,6 +21,11 @@ class Q2Interaction {
     this._clockLong  = document.querySelector('#long');
 
     this._onCursorMove = (e) => {
+      if (e.target.closest('#btn-home, .logo-btn, .btn-next')) {
+        this._cursorEl.style.display = 'none';
+        return;
+      }
+      this._cursorEl.style.display = 'block';
       this._cursorEl.style.left = e.clientX + 'px';
       this._cursorEl.style.top  = e.clientY + 'px';
     };

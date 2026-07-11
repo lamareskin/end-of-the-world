@@ -11,9 +11,8 @@
   <!-- ===================== START SCREEN ===================== -->
   <div id="screen-start" class="screen active">
     <div class="start-hero">
-      <img class="start-title-svg" src="title.svg" alt="Title">
-      <p class="start-tagline">Welcome to the End of the world themed questionnaire that reveals your true personality</p>
-      <p class="start-sub">6 Questions, one personalized result</p>
+      <h1 class="start-title-text">The Day the<br>World Ends</h1>
+      <p class="start-tagline">You think you know yourself?<br>The end of the world changes everything.<br>Answer 6 questions about the end of the world to find out who you really are.<br>Enjoy!</p>
     </div>
     <div class="globe-container" id="globe-container">
       <img class="globe-base" src="globe.svg" alt="">
@@ -23,14 +22,15 @@
       <img class="globe-hover globe-hover-4" id="globe-hover-4" src="hover4.svg" alt="">
       <div class="globe-hitarea" id="globe-hitarea"></div>
     </div>
-    <div class="about-container" id="about-container">
+    <div class="about-container" id="about-container" style="display:none">
       <img class="about-img" id="about-img" src="about.svg" alt="About">
       <img class="about-hover-img" id="about-hover-img" src="abouthover.svg" alt="">
       <img class="about-textbox" id="about-textbox" src="about-textbox.svg" alt="">
       <p class="about-text">If the world were to end, how do you expect it to go? You think you know yourself, but the "End of the world" kinda changes everything. You get to answer 6 multiple-choice questions to find out who you will become. Enjoy!</p>
     </div>
+    <img class="start-moon" src="moon.svg" alt="">
     <div class="ui-grid">
-      <button class="btn-start" id="btn-start">Start Quiz</button>
+      <p class="start-click-hint" id="start-click-hint">click anywhere to start</p>
     </div>
     <button class="btn-dev-results" id="btn-dev-q2">→ Q2</button>
     <button class="btn-dev-results" id="btn-dev-q3">→ Q3</button>
@@ -106,7 +106,7 @@
     <!-- 12-column UI grid -->
     <div class="ui-grid">
       <p class="question-text" id="question-text"></p>
-      <button class="logo-btn" id="btn-home"><img class="logo-img" src="logo.svg" alt="Home"></button>
+      <button class="logo-btn" id="btn-home"><img class="logo-img" src="newlogo.svg" alt="Home"></button>
       <button class="btn-prev" id="btn-prev">Previous</button>
       <button class="btn-next" id="btn-next">Next</button>
       <p class="q2-drag-hint" id="q2-drag-hint">Drag left or right to select</p>
@@ -192,8 +192,8 @@
         <p class="pre-comic-q4" id="preComic-stepC"></p>
       </div>
 
-      <!-- "click to continue" hint shown during step B -->
-      <p class="pre-comic-click-hint" id="preComic-clickHint">click to continue</p>
+      <!-- click hint shown during step A -->
+      <p class="pre-comic-click-hint" id="preComic-clickHint">click anywhere to continue</p>
     </div>
   </div>
 
@@ -206,12 +206,6 @@
        The dot's position is a static placeholder for now (see styles.css
        .comic-progress-dot) — wiring it to actual comic scroll progress is a
        separate follow-up. -->
-  <div id="comic-progress-sidebar" aria-hidden="true">
-    <div class="comic-progress-pill">
-      <div class="comic-progress-dot" id="comic-progress-dot"></div>
-    </div>
-  </div>
-
   <!-- ===================== COMIC REVEAL SCREEN ===================== -->
   <!-- Every child here is position:absolute, placed with calc() against the same
        12-column / --ph / --gap variables the rest of the site uses (see .art-overlay
@@ -222,6 +216,7 @@
     <!-- Exit sequence: gradient background — must be FIRST child so it always
          paints underneath the scene and character regardless of z-index. -->
     <div class="comic-bg-overlay" id="comic-bg-overlay"></div>
+    <canvas class="comic-stars-canvas" id="comic-stars-canvas"></canvas>
 
     <!-- Invisible reference grid — not used for actual layout (everything below is
          positioned by calc()), it exists only so Chrome DevTools' grid inspector has
@@ -347,14 +342,15 @@
 
     <!-- Result page built one element per scroll after the globe sequence -->
     <div class="comic-results-left" id="comic-results-left">
-      <img class="comic-result-char-img" id="comic-result-char-img" src="" alt="">
+      <h2 class="comic-result-char-img" id="comic-result-char-img"></h2>
       <p class="comic-result-desc" id="comic-result-desc"></p>
+      <p class="comic-result-stat" id="comic-result-stat"></p>
     </div>
     <img class="comic-result-art" id="comic-result-art" src="" alt="">
 
     <!-- Appears ~1s into the floating exit; click shrinks the character away
          and reveals the result page. -->
-    <button class="comic-to-results" id="comic-to-results" type="button">to the results</button>
+    <button class="comic-to-results" id="comic-to-results" type="button">To the results</button>
 
   </div>
 
@@ -372,6 +368,7 @@
        transform applied to #screen-comic-reveal. Fades in 1s after result assembles. -->
   <button class="btn-results btn-try-again" id="btn-restart">Try Again</button>
   <button class="btn-results btn-share" id="btn-share">Share</button>
+  <button id="btn-dev-cycle-result">⟳ cycle result</button>
 
   <!-- Share mode: comic-panel snapshot (populated by JS before exit sequence).
        Shows the final comic layout when the user switches to slide 2. -->
@@ -382,6 +379,9 @@
     <button class="share-dot" data-idx="0" aria-label="Results">Results</button>
     <button class="share-dot" data-idx="1" aria-label="Answers">Answers</button>
   </div>
+
+  <!-- Globe-zoom transition overlay -->
+  <div id="globe-zoom-overlay"></div>
 
   <!-- Q1 custom cursor — at body level to escape screen stacking contexts -->
   <div class="q1-custom-cursor" id="q1-custom-cursor">

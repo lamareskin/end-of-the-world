@@ -362,6 +362,33 @@ class SidebarInteraction {
 
   hide() { this._container.style.display = 'none'; }
 
+  initProgress(totalSteps) {
+    this._progressStep  = 0;
+    this._progressTotal = totalSteps;
+    if (this._progressDot) this._progressDot.remove();
+    const dot = document.createElement('div');
+    dot.className = 'sb-progress-indicator';
+    this._container.appendChild(dot);
+    this._progressDot = dot;
+  }
+
+  advanceProgress() {
+    if (!this._progressDot || this._progressStep >= this._progressTotal) return;
+    this._progressStep++;
+    const frac = this._progressStep / this._progressTotal;
+    const ch   = this._container.getBoundingClientRect().height;
+    const dotH = 36;
+    const pad  = 12;
+    this._progressDot.style.top = (pad + frac * (ch - dotH - pad * 2)) + 'px';
+  }
+
+  dismissProgress() {
+    if (this._progressDot) this._progressDot.style.opacity = '0';
+    this._container.style.transition = 'width 0.45s cubic-bezier(0.4, 0, 0.6, 1)';
+    this._container.style.width = '0px';
+    setTimeout(() => { this._container.style.display = 'none'; }, 480);
+  }
+
   squeezeForArt(qIndex) {
     this._container.offsetHeight;
     this._container.style.transition = 'width 0.45s cubic-bezier(0.4, 0, 0.6, 1)';
@@ -484,7 +511,169 @@ class SidebarInteraction {
     });
   }
 
+  // Called after the last question is answered — keeps sidebar visible while
+  // icons fly to screen center (vacuum effect), then shrinks and pinks the bar.
+  playExitAnimation(onComplete, onReady) {
+    const cx = window.innerWidth  / 2;
+    const cy = window.innerHeight / 2;
+
+    // Collect all answer icons currently shown in the sidebar
+    const iconEls = [];
+    this._bubbles.forEach(b => {
+      b.querySelectorAll('.sb-answered-icon').forEach(img => iconEls.push(img));
+    });
+
+    if (!iconEls.length) { setTimeout(() => onComplete && onComplete(), 50); return; }
+
+    // Snapshot positions before DOM changes
+    const snapshots = iconEls.map(img => ({ el: img, rect: img.getBoundingClientRect() }));
+
+    // Create fixed-position clones floating over each icon
+    this._exitAnimClones = snapshots.map(({ el, rect }) => {
+      const clone = el.cloneNode(true);
+      Object.assign(clone.style, {
+        position:      'fixed',
+        left:          rect.left + 'px',
+        top:           rect.top  + 'px',
+        width:         rect.width  + 'px',
+        height:        rect.height + 'px',
+        margin:        '0',
+        zIndex:        '9999',
+        pointerEvents: 'none',
+        transition:    'none',
+        willChange:    'transform, opacity',
+      });
+      document.body.appendChild(clone);
+      el.style.opacity = '0'; // hide original under the clone
+      return clone;
+    });
+
+    const VIBRATE_MS = 1100; // how long the slow shake lasts
+    const SUCK_MS    = 620;  // how long the suck-in flight takes
+
+    // Phase 1 — slow vibration in place, amplitude builds over time
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      this._exitAnimClones.forEach((clone, i) => {
+        // Each icon gets its own random-ish shake pattern so they don't move in unison
+        const s = (i % 2 === 0 ? 1 : -1);
+        clone.animate([
+          { transform: 'translate(0px, 0px)',              offset: 0    },
+          { transform: `translate(${s*1}px, 0px)`,        offset: 0.08 },
+          { transform: 'translate(0px, 0px)',              offset: 0.16 },
+          { transform: `translate(${s*-1.5}px, 1px)`,     offset: 0.25 },
+          { transform: 'translate(0px, 0px)',              offset: 0.33 },
+          { transform: `translate(${s*2}px, -1px)`,       offset: 0.42 },
+          { transform: 'translate(0px, 0px)',              offset: 0.50 },
+          { transform: `translate(${s*-2.5}px, 1.5px)`,  offset: 0.60 },
+          { transform: 'translate(0px, 0px)',              offset: 0.68 },
+          { transform: `translate(${s*3}px, -2px)`,       offset: 0.78 },
+          { transform: 'translate(0px, 0px)',              offset: 0.86 },
+          { transform: `translate(${s*-3.5}px, 2px)`,    offset: 0.94 },
+          { transform: 'translate(0px, 0px)',              offset: 1    },
+        ], {
+          duration: VIBRATE_MS,
+          easing:   'linear',
+          fill:     'none',
+        });
+      });
+    }));
+
+    const PAUSE_MS = 450; // empty open bar pause before shrinking
+
+    // Phase 2 — icons shoot out, bar stays at full width
+    this._exitAnimTimer2 = setTimeout(() => {
+      this._exitAnimClones.forEach((clone, i) => {
+        const { rect } = snapshots[i];
+        const dx = cx - (rect.left + rect.width  / 2);
+        const dy = cy - (rect.top  + rect.height / 2);
+        clone.animate([
+          { transform: 'translate(0,0) scale(1)',                              opacity: 1, offset: 0    },
+          { transform: `translate(${dx*0.05}px,${dy*0.05}px) scale(1.15)`,    opacity: 1, offset: 0.10 },
+          { transform: `translate(${dx}px,${dy}px) scale(0)`,                 opacity: 0, offset: 1    },
+        ], {
+          duration: SUCK_MS,
+          delay:    i * 22,
+          easing:   'cubic-bezier(0.55, 0, 1, 1)',
+          fill:     'forwards',
+        });
+      });
+    }, VIBRATE_MS);
+
+    const SHRINK_MS  = 650;  // horizontal width squeeze duration
+    const STRETCH_MS = 1000; // vertical stretch duration
+
+    // Phase 3a — rings vanish instantly, container squeezes horizontally
+    this._exitAnimTimer3 = setTimeout(() => {
+      this._container.classList.add('sb-merging');
+      // Clear inline transition override so CSS sb-exiting transition takes effect
+      this._container.style.transition = '';
+      this._bubbles.forEach(b => { b.style.transition = ''; });
+      this._container.getBoundingClientRect(); // force reflow before animating
+      this._container.style.width = '28px';
+    }, VIBRATE_MS + SUCK_MS + PAUSE_MS);
+
+    // Phase 3b — top bubble stretches to fill full height, others collapse away
+    this._exitAnimTimer4 = setTimeout(() => {
+      if (onReady) onReady();
+      const EASE = 'cubic-bezier(0.4, 0, 0.6, 1)';
+      const transition = `flex-grow ${STRETCH_MS}ms ${EASE}, flex-basis ${STRETCH_MS}ms ${EASE}, min-height ${STRETCH_MS}ms ${EASE}`;
+
+      this._nextBubble.style.transition  = transition;
+      this._nextBubble.style.flexGrow    = '0';
+      this._nextBubble.style.flexBasis   = '0px';
+
+      this._bubbles.forEach((b, i) => {
+        b.style.transition = transition;
+        b.style.minHeight  = '0';
+        if (i === 0) {
+          b.style.flexGrow  = '100';
+          b.style.flexBasis = '0';
+        } else {
+          b.style.flexGrow    = '0';
+          b.style.flexBasis   = '0px';
+          b.style.borderWidth = '0';
+        }
+      });
+    }, VIBRATE_MS + SUCK_MS + PAUSE_MS + SHRINK_MS);
+
+    // Clean up after everything
+    this._exitAnimTimer = setTimeout(() => {
+      this._cleanupExitAnim();
+      if (onComplete) onComplete();
+    }, VIBRATE_MS + SUCK_MS + PAUSE_MS + SHRINK_MS + STRETCH_MS + 200);
+  }
+
+  _cleanupExitAnim() {
+    clearTimeout(this._exitAnimTimer);
+    clearTimeout(this._exitAnimTimer2);
+    clearTimeout(this._exitAnimTimer3);
+    clearTimeout(this._exitAnimTimer4);
+    this._exitAnimTimer  = null;
+    this._exitAnimTimer2 = null;
+    this._exitAnimTimer3 = null;
+    this._exitAnimTimer4 = null;
+    if (this._exitAnimClones) {
+      this._exitAnimClones.forEach(el => el.remove());
+      this._exitAnimClones = null;
+    }
+    // Restore originals' opacity in case animation was cancelled mid-flight
+    this._bubbles.forEach(b => {
+      b.style.transition = '';
+      // borderColor intentionally kept — pill stays pink until reset()
+    });
+    this._container.classList.remove('sb-exiting');
+    // sb-merging is intentionally kept — the single pink pill persists until reset()
+  }
+
   reset() {
+    this._cleanupExitAnim();
+    this._container.classList.remove('sb-merging');
+    this._container.style.display = 'none';
+    this._container.style.width = '';
+    this._container.style.transition = '';
+    if (this._progressDot) { this._progressDot.remove(); this._progressDot = null; }
+    this._progressStep  = 0;
+    this._progressTotal = 0;
     this._cleanupSlider();
     if (this._wheelCleanup) { this._wheelCleanup(); this._wheelCleanup = null; }
     this._teardownCustomCursor();
@@ -500,9 +689,13 @@ class SidebarInteraction {
       if (i === 0 || i === 3) b.classList.add('sb-bubble-diamond');
       b.innerHTML = '';
       this._reinjectSvg(b, i);
-      b.style.clipPath = '';
-      b.style.flexGrow = '';
-      b.style.transition = '';
+      b.style.clipPath    = '';
+      b.style.flexGrow    = '';
+      b.style.flexBasis   = '';
+      b.style.minHeight   = '';
+      b.style.borderWidth = '';
+      b.style.borderColor = '';
+      b.style.transition  = '';
     });
     this._disableNext();
   }
@@ -524,7 +717,7 @@ class SidebarInteraction {
 
     document.body.classList.add('sb-cursor-none');
 
-    const navSelector = '.btn-next, .btn-prev, .globe-hitarea, .globe-container';
+    const navSelector = '.btn-next, .btn-prev, .globe-hitarea, .globe-container, #btn-home, .logo-btn, .sb-next';
     this._customCursorMoveFn = (e) => {
       el.style.left = e.clientX + 'px';
       el.style.top  = e.clientY + 'px';

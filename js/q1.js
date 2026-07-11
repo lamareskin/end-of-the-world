@@ -191,6 +191,11 @@ class Q1Interaction {
   }
 
   _handleMouseMove(e) {
+    const overUI = e.target.closest('#btn-home, .logo-btn, .btn-next, .sb-next');
+    if (overUI) {
+      this.cursorEl.style.display = 'none';
+      return;
+    }
     this.cursorEl.style.left = e.clientX + 'px';
     this.cursorEl.style.top  = e.clientY + 'px';
     if (this.cursorEl.style.display !== 'block') this.cursorEl.style.display = 'block';

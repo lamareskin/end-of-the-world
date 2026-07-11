@@ -23,6 +23,7 @@ class ShareViewer {
         document.body.classList.add(cls);
       }
       this.btnShare.disabled = this._selected.size === 0;
+      this._updateSaveLabel();
     });
 
     this.btnShare.addEventListener('click', () => {
@@ -97,6 +98,15 @@ class ShareViewer {
     }
   }
 
+  _updateSaveLabel() {
+    const hasResult  = this._selected.has(0);
+    const hasAnswers = this._selected.has(1);
+    if (hasResult && hasAnswers) this.btnShare.textContent = 'Save both';
+    else if (hasResult)          this.btnShare.textContent = 'Save results';
+    else if (hasAnswers)         this.btnShare.textContent = 'Save answers';
+    else                         this.btnShare.textContent = 'Save';
+  }
+
   _clearOverlays() {
     this.comicFrameEl
       .querySelectorAll('.share-keyword-tag, .share-speech-bubble, .share-caption-bar')
@@ -110,18 +120,53 @@ class ShareViewer {
     if (this._selected.has(0)) targets.push({ el: this.screenEl,     name: 'pagmar-result' });
     if (this._selected.has(1)) targets.push({ el: this.comicFrameEl, name: 'pagmar-comic'  });
 
-    targets.forEach(({ el, name }) => {
-      domtoimage.toPng(el, {
-        width:  window.innerWidth,
-        height: window.innerHeight,
-        style:  { transform: 'none', borderRadius: '0' },
-      }).then(dataUrl => {
-        const a = document.createElement('a');
-        a.href = dataUrl;
-        a.download = `${name}.png`;
-        a.click();
-      }).catch(err => console.error('Save failed:', err));
-    });
+    // Strip body share-state classes during capture so CSS transforms don't interfere,
+    // then restore them. Capture sequentially so DOM state is stable per capture.
+    const stateClasses = ['share-result', 'share-answers'];
+    const active = stateClasses.filter(c => document.body.classList.contains(c));
+
+    const captureNext = (i) => {
+      if (i >= targets.length) {
+        // Restore state classes
+        active.forEach(c => document.body.classList.add(c));
+        return;
+      }
+      const { el, name } = targets[i];
+      // Remove state classes so elements sit in their neutral share-mode positions
+      active.forEach(c => document.body.classList.remove(c));
+
+      // Wait one frame for layout to settle after class removal
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const isResultScreen = el === this.screenEl;
+        domtoimage.toPng(el, {
+          width:  window.innerWidth,
+          height: window.innerHeight,
+          style:  { transform: 'none', borderRadius: '0' },
+          imagePlaceholder: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIABQAABjE+ibYAAAAASUVORK5CYII=',
+          filter: isResultScreen ? (node) => {
+            if (!node.classList) return true;
+            // Skip comic panel images — they sit behind the result overlay and cause errors
+            return !node.classList.contains('comic-panel') &&
+                   !node.classList.contains('comic-panel-box') &&
+                   !node.classList.contains('comic-bubble') &&
+                   !node.classList.contains('comic-bubble-shapes');
+          } : undefined,
+        }).then(dataUrl => {
+          const a = document.createElement('a');
+          a.href = dataUrl;
+          a.download = `${name}.png`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          captureNext(i + 1);
+        }).catch(err => {
+          console.error('Save failed:', err);
+          captureNext(i + 1);
+        });
+      }));
+    };
+
+    captureNext(0);
   }
 
   _populateComicFrame() {
@@ -222,24 +267,40 @@ class ShareViewer {
       f.appendChild(el);
     };
 
+    const makeLabel = (text) => {
+      const el = document.createElement('div');
+      el.className = 'share-keyword-tag share-keyword-tag--label';
+      el.textContent = text;
+      return el;
+    };
+
+    // Force a full layout flush so all getBoundingClientRect calls below
+    // return correctly-computed positions (panels have CSS transforms that
+    // only resolve after the browser has processed the cloned scene's styles).
+    void f.offsetHeight;
+
+    // Compute sgTop directly from viewport dims — more reliable than
+    // getBoundingClientRect on Q1/Q5 whose tops use the same formula.
+    const comicPv = 24;
+    const ph      = window.innerWidth * 0.02;
+    const row     = (window.innerHeight - 2 * comicPv) / 12;
+    const sgTop   = comicPv + 1.2 * row;
+
+    // Q1 — answer tag inside panel, label sits above the panel border.
     const q1Idx = State.getAnswer(0);
-    const q1El  = f.querySelector('#comic-panel-q1');
-    if (q1Idx !== null && q1El) {
-      const r = q1El.getBoundingClientRect();
-      const tag = makeTag(QUESTIONS[0].answers[q1Idx].text);
-      if (q1Idx === 0) {
-        const comicPv = 24;
-        const ph      = window.innerWidth * 0.02;
-        const row     = (window.innerHeight - 2 * comicPv) / 12;
-        const sgTop   = comicPv + 1.2 * row;
-        f.appendChild(tag);
-        tag.style.left = (ph + PAD) + 'px';
-        tag.style.top  = (sgTop + PAD) + 'px';
-      } else {
-        place(tag, r.left + PAD, r.top + PAD);
-      }
+    if (q1Idx !== null) {
+      const label = makeLabel('The one to blame:');
+      const tag   = makeTag(QUESTIONS[0].answers[q1Idx].text);
+      f.appendChild(label);
+      f.appendChild(tag);
+      void f.offsetHeight;
+      tag.style.left   = (ph + PAD) + 'px';
+      tag.style.top    = (sgTop - tag.offsetHeight) + 'px';
+      label.style.left = (ph + PAD) + 'px';
+      label.style.top  = (sgTop - tag.offsetHeight - label.offsetHeight) + 'px';
     }
 
+    // Q3 — stacked to the left of the footbox, vertically centred on it.
     const q3Raw  = State.getAnswer(2);
     const q3List = Array.isArray(q3Raw) ? q3Raw : (q3Raw !== null ? [q3Raw] : []);
     const fboxEl = f.querySelector('.comic-footbox');
@@ -248,37 +309,55 @@ class ShareViewer {
       .filter(Boolean)
       .map(ans => makeTag(ans.text));
     if (q3Tags.length && fboxEl) {
-      const r = fboxEl.getBoundingClientRect();
+      const r   = fboxEl.getBoundingClientRect();
       const GAP = 10;
-      q3Tags.forEach(tag => place(tag, 0, 0));
-      requestAnimationFrame(() => {
-        const heights = q3Tags.map(t => t.offsetHeight);
-        const totalHeight = heights.reduce((a, b) => a + b, 0) + GAP * (q3Tags.length - 1);
-        let top = r.top + r.height / 2 - totalHeight / 2;
-        q3Tags.forEach((tag, i) => {
-          tag.style.top  = top + 'px';
-          tag.style.left = (r.left - tag.offsetWidth * 0.9) + 'px';
-          top += heights[i] + GAP;
-        });
+      // Append first so offsetHeight/Width are available
+      q3Tags.forEach(tag => { tag.style.left = '0'; tag.style.top = '0'; f.appendChild(tag); });
+      void f.offsetHeight; // flush so offsetHeight/Width are correct
+      const heights     = q3Tags.map(t => t.offsetHeight);
+      const totalHeight = heights.reduce((a, b) => a + b, 0) + GAP * (q3Tags.length - 1);
+      let top = r.top + r.height / 2 - totalHeight / 2;
+      q3Tags.forEach((tag, i) => {
+        tag.style.top  = top + 'px';
+        tag.style.left = (r.left - tag.offsetWidth * 0.9) + 'px';
+        top += heights[i] + GAP;
       });
     }
 
+    // Q4 — answer tag inside the pink box, label stacked directly above it.
     const q4Idx = State.getAnswer(3);
     const boxEl = f.querySelector('#comic-panel-box-q4');
     if (q4Idx !== null && boxEl) {
-      const r = boxEl.getBoundingClientRect();
-      place(makeTag(QUESTIONS[3].answers[q4Idx].text), r.left + PAD, r.top + PAD);
+      const r     = boxEl.getBoundingClientRect();
+      const label = makeLabel('The messenger:');
+      const tag   = makeTag(QUESTIONS[3].answers[q4Idx].text);
+      f.appendChild(label);
+      f.appendChild(tag);
+      void f.offsetHeight;
+      const answerTop = r.top + PAD;
+      tag.style.left   = (r.left + PAD) + 'px';
+      tag.style.top    = answerTop + 'px';
+      label.style.left = (r.left + PAD) + 'px';
+      label.style.top  = (answerTop - label.offsetHeight) + 'px';
     }
 
+    // Q5 — bottom-left corner, label stacked directly above the answer tag.
+    // Use getBoundingClientRect (after flush) for the panel's true bottom edge
+    // since the panel's top is set by JS inline style which may not transfer to clone.
     const q5Idx = State.getAnswer(4);
     const q5El  = f.querySelector('#comic-panel-q5');
     if (q5Idx !== null && q5El) {
-      const r = q5El.getBoundingClientRect();
-      const tag = makeTag(QUESTIONS[4].answers[q5Idx].text);
-      place(tag, r.left + PAD, 0);
-      requestAnimationFrame(() => {
-        tag.style.top = (r.bottom - PAD - tag.offsetHeight) + 'px';
-      });
+      const label = makeLabel('The last Goodbye:');
+      const tag   = makeTag(QUESTIONS[4].answers[q5Idx].text);
+      f.appendChild(label);
+      f.appendChild(tag);
+      void f.offsetHeight;
+      const r        = q5El.getBoundingClientRect();
+      const answerTop = r.bottom - PAD - tag.offsetHeight;
+      tag.style.left   = (ph + PAD) + 'px';
+      tag.style.top    = answerTop + 'px';
+      label.style.left = (ph + PAD) + 'px';
+      label.style.top  = (answerTop - label.offsetHeight) + 'px';
     }
   }
 }

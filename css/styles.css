@@ -143,25 +143,30 @@ button {
   position: absolute;
   top: var(--pv);
   left: var(--ph);
-  width: calc((10*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 9*var(--gap)) * 0.95);
+  width: calc(100vw - var(--ph));
   display: flex;
   flex-direction: column;
   z-index: 10;
 }
 
-.start-title-svg {
-  width: 100%;
-  height: auto;
+.start-title-text {
+  margin: 0;
+  font-family: 'PPNeueCorp', sans-serif;
+  font-weight: 500;
+  font-size: clamp(80px, 14vw, 210px);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: #fe80fe;
 }
 
 .start-tagline {
-  margin-top: 10px;
+  margin-top: 5vh;
   font-size: 26.5px;
   line-height: 1.27;
   color: #fe80fe;
   font-family: 'PPNeueMontreal', system-ui, sans-serif;
   font-weight: 400;
-  max-width: calc(3*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 2*var(--gap));
+  max-width: calc(3.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 2.5*var(--gap));
 }
 
 .start-sub {
@@ -174,28 +179,24 @@ button {
   max-width: calc(2*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 1*var(--gap));
 }
 
-.btn-start {
-  grid-column: 12;
-  grid-row: 3;
-  align-self: end;
-  justify-self: end;
-  pointer-events: auto;
-  display: inline-flex;
-  align-items: center;
-  background: #fed5d6;
-  color: #6d1631;
-  font-family: 'PPNeueCorp', system-ui, sans-serif;
-  font-weight: 500;
+.start-click-hint {
+  position: fixed;
+  bottom: var(--pv);
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  font-weight: 400;
   font-size: 20px;
-  padding: 15px 32px;
-  border-radius: 100px;
-  border: none;
-  cursor: pointer;
-  transition: opacity 0.2s;
+  color: #fed5d6;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  pointer-events: none;
   white-space: nowrap;
+  z-index: 20;
 }
 
-.btn-start:hover { opacity: 0.8; }
+.start-click-hint.visible { opacity: 1; }
 
 .start-eyebrow {
   font-size: 12px;
@@ -221,6 +222,16 @@ button {
 }
 
 /* ===================== ABOUT ===================== */
+.start-moon {
+  position: absolute;
+  top: 25vh;
+  left: calc(var(--ph) + 10*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 10*var(--gap));
+  width: calc((100vw - 2*var(--ph) - 11*var(--gap))/12);
+  height: auto;
+  pointer-events: none;
+  z-index: 10;
+}
+
 .about-container {
   position: absolute;
   top: calc(var(--pv) * 7);
@@ -289,15 +300,35 @@ button {
   display: block;
 }
 
+/* ===================== GLOBE ZOOM OVERLAY ===================== */
+#globe-zoom-overlay {
+  position: fixed;
+  inset: 0;
+  background: #fe80fe;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9999;
+  transition: opacity 0.5s ease;
+}
+#globe-zoom-overlay.fade-in  { opacity: 1; }
+#globe-zoom-overlay.fade-out { opacity: 0; }
+
 /* ===================== GLOBE ===================== */
+@keyframes globe-float {
+  0%   { transform: translateY(0); }
+  50%  { transform: translateY(-18px); }
+  100% { transform: translateY(0); }
+}
+
 .globe-container {
   position: absolute;
-  bottom: 4vh;
+  bottom: 12vh;
   left: calc(var(--ph) + 4.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 7*var(--gap));
   width: calc((4.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 3.5*var(--gap)) * 1.6);
   height: calc((4.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 3.5*var(--gap)) * 1.6);
   z-index: 100;
   pointer-events: none;
+  animation: globe-float 4s ease-in-out infinite;
 }
 
 .globe-base,
@@ -518,22 +549,29 @@ button {
 .logo-btn {
   grid-column: 1;
   grid-row: 1;
-  align-self: center;
+  align-self: start;
   justify-self: start;
   pointer-events: auto;
   background: none;
   border: none;
   cursor: pointer;
   padding: 0;
+  margin-top: calc(-1 * var(--pv) * 0.4);
+  margin-left: calc(-1 * var(--ph) * 0.4);
   display: flex;
   align-items: center;
 }
 
 .logo-img {
-  height: 48px;
+  height: 62px;
   width: auto;
   display: block;
   filter: none;
+  transition: opacity 0.2s ease;
+}
+
+.logo-btn:hover .logo-img {
+  opacity: 0.6;
 }
 
 .question-text {
@@ -855,15 +893,16 @@ button {
   letter-spacing: 0.05em;
 }
 
-/* Step B: someday text block, centered, two stacked lines */
+/* Step B: someday text block, slightly below center */
 .pre-comic-reveal-block {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.35em;
-  width: min(55vw, 700px); /* override .pre-comic-line width: max-content so text wraps */
+  width: min(80vw, 950px);
   max-width: 90vw;
   text-align: center;
+  top: 48%;
 }
 
 .pre-comic-q2 {
@@ -906,41 +945,6 @@ button {
 .pre-comic-click-hint.visible { opacity: 1; }
 
 /* ===================== COMIC PROGRESS SIDEBAR ===================== */
-/* Replaces the real #answer-sidebar once questions are done — see
-   app.js _showComicProgressSidebar. Same spot/width as the real sidebar's
-   compressed (28px) state, one long pill instead of numbered bubbles. */
-#comic-progress-sidebar {
-  position: fixed;
-  right: 0;
-  top: 0;
-  width: 28px;
-  height: 100vh;
-  z-index: 1000;
-  display: none;
-  pointer-events: none;
-}
-#comic-progress-sidebar.visible { display: block; }
-
-.comic-progress-pill {
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  border: 1.5px solid #5e0015;
-  box-sizing: border-box;
-}
-
-/* Static placeholder position for now — wiring this to the comic's actual
-   scroll stage (this.stage / STAGE_COUNT) is a separate follow-up. */
-.comic-progress-dot {
-  position: absolute;
-  left: 50%;
-  top: 12%;
-  transform: translate(-50%, -50%);
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #5e0015;
-}
 
 /* ===================== COMIC REVEAL ===================== */
 /* Same 12-column system as every other page (--ph page margin, --gap between
@@ -951,6 +955,9 @@ button {
    All positions are still first-pass — give column/row numbers to adjust. */
 #screen-comic-reveal {
   background: #6d1631;
+}
+#screen-comic-reveal.result-shown {
+  background: #fe80fe;
   overflow: hidden;
   /* Fixed px, not vw/vh like the sitewide --gap/--pv — this locks the actual
      gap distances between panels regardless of screen size (both horizontal
@@ -1385,10 +1392,11 @@ button {
   display: inline-flex;
   align-items: center;
   font-family: 'PPNeueCorp', system-ui, sans-serif;
-  font-size: 20px;
+  height: 60px;
+  font-size: 22px;
   font-weight: 500;
-  padding: 15px 32px;
-  border-radius: 100px;
+  padding: 0 32px;
+  border-radius: 999px;
   cursor: pointer;
   opacity: 0;
   pointer-events: none;
@@ -1409,7 +1417,8 @@ button {
 
 .btn-share {
   right: 0;
-  width: calc(100vw / 12);
+  width: auto;
+  white-space: nowrap;
   justify-content: center;
   background: #6d1631;
   color: #fff;
@@ -1449,12 +1458,13 @@ button {
   transform: translateX(-50%);
   display: flex;
   z-index: 10;
+  pointer-events: none;
 }
 
 .comic-nav-arrow {
   width: 128px;
-  height: 52px;
-  border-radius: 18px;
+  height: 60px;
+  border-radius: 999px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1507,6 +1517,24 @@ button {
   border: none;
   cursor: pointer;
   font-family: inherit;
+}
+
+/* Dev cycle-result button — top-right corner, always on top */
+#btn-dev-cycle-result {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 9999;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  font-size: 12px;
+  padding: 6px 16px;
+  border-radius: 100px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  pointer-events: auto;
+  display: none;
 }
 
 /* ===================== Q1 LABEL OFFSET PANEL ===================== */
@@ -1604,6 +1632,12 @@ button {
 #screen-question.q1-active,
 #screen-question.q1-active * {
   cursor: none !important;
+}
+
+/* restore native cursor on logo and next button even during Q1 */
+#screen-question.q1-active #btn-home,
+#screen-question.q1-active #btn-home * {
+  cursor: pointer !important;
 }
 
 .q1-label-panel,
@@ -2823,6 +2857,37 @@ body.art-is-showing #screen-question * { cursor: auto !important; }
 
 #btn-next { display: none !important; }
 
+#answer-sidebar.sb-exiting {
+  transition: width 0.65s cubic-bezier(0.4, 0, 0.6, 1);
+}
+#answer-sidebar.sb-exiting .sb-bubble {
+  border-color: #ffb8d9;
+  transition: border-color 0.45s ease, flex-grow 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+}
+#answer-sidebar.sb-exiting .sb-q1-ring {
+  border-color: #ffb8d9 !important;
+}
+
+/* Phase 3: inner rings vanish instantly; bubble 0 stretches to full height */
+#answer-sidebar.sb-merging .sb-q1-ring {
+  opacity: 0 !important;
+  transition: none !important;
+}
+
+.sb-progress-indicator {
+  position: absolute;
+  left: 50%;
+  top: 12px;
+  transform: translateX(-50%);
+  width: 13px;
+  height: 36px;
+  background: #ffb8d9;
+  border-radius: 9999px;
+  pointer-events: none;
+  z-index: 1;
+  transition: top 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .sb-bubble {
   flex: 1 1 0px;
   width: 100%;
@@ -3328,6 +3393,10 @@ body.art-is-showing #screen-question * { cursor: auto !important; }
   pointer-events: none;
 }
 
+.sb-next-enabled:hover {
+  opacity: 0.7;
+}
+
 .sb-next-enabled {
   background: #5e0015;
 }
@@ -3358,9 +3427,17 @@ body.art-is-showing.sb-cursor-none * {
   cursor: auto !important;
 }
 
-/* Restore default cursor on nav buttons regardless of sb-cursor-none */
+/* Restore cursor on nav buttons regardless of sb-cursor-none */
 body.sb-cursor-none .btn-next,
+body.sb-cursor-none .btn-next *,
 body.sb-cursor-none .btn-prev,
+body.sb-cursor-none .btn-prev *,
+body.sb-cursor-none .logo-btn,
+body.sb-cursor-none .logo-btn *,
+body.sb-cursor-none .sb-next,
+body.sb-cursor-none .sb-next * {
+  cursor: pointer !important;
+}
 body.sb-cursor-none .globe-hitarea,
 body.sb-cursor-none .globe-container {
   cursor: auto !important;
@@ -3424,22 +3501,38 @@ body.sb-cursor-none .globe-container {
 .comic-bg-overlay {
   position: absolute;
   inset: 0;
-  /* Nearly black with a faint deep-red glow only at the very bottom */
-  background: linear-gradient(to bottom, #0e0008 0%, #0e0008 72%, #3d0115 100%);
+  /* One tall strip: dark top → deep burgundy → pink bottom.
+     background-size makes it 3× the viewport height so the gradient is gradual.
+     We animate background-position (camera panning down) instead of swapping
+     gradients, which CSS cannot interpolate smoothly. */
+  background: linear-gradient(to bottom, #0e0008 0%, #0e0008 25%, #3d0115 55%, #fe80fe 100%);
+  background-size: 100% 300%;
+  background-position: 0% 0%;
   opacity: 0;
-  transition: opacity 0.5s ease, background 2.8s ease;
+  transition: opacity 0.5s ease, background-position 2.8s ease;
   z-index: 0;
   pointer-events: none;
 }
 .comic-bg-overlay.gradient-in { opacity: 1; }
-/* Triggered ~1s after float starts — gradually blooms into full pink gradient */
+/* Pan the camera down to the pink end of the strip */
 .comic-bg-overlay.gradient-warm {
-  background: linear-gradient(to bottom, #3d0115 0%, #fe80fe 100%);
+  background-position: 0% 100%;
 }
 .comic-bg-overlay.full-pink {
   background: #fe80fe;
-  transition: opacity 0.5s ease, background 0s;
+  transition: opacity 0.5s ease, background-position 0s;
 }
+.comic-stars-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.comic-stars-canvas.stars-active { opacity: 1; }
 
 /* Slide panels and UI chrome upward; each element gets a small stagger
    so they leave the stage one after the other rather than all at once. */
@@ -3483,9 +3576,8 @@ body.sb-cursor-none .globe-container {
    centre so it vanishes exactly where it was. */
 .comic-character.char-shrink {
   animation: none !important;
-  transform: translateY(-50%) scale(0) !important;
-  transform-origin: 50% 50% !important;
-  transition: transform 0.6s cubic-bezier(0.5, 0, 0.75, 0.35) !important;
+  transform: translateY(130vh) !important;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 1, 1) !important;
 }
 .comic-character.char-gone { opacity: 0; }
 
@@ -3494,15 +3586,16 @@ body.sb-cursor-none .globe-container {
 .comic-to-results {
   position: absolute;
   left: 50%;
-  bottom: 7vh;
+  bottom: 0;
   transform: translateX(-50%) translateY(12px);
-  padding: 14px 30px;
-  border: none;
+  padding: 0 36px;
+  height: 60px;
+  border: 1.5px solid #5e0015;
   border-radius: 999px;
-  background: #5e0015;
-  color: #fff;
+  background: transparent;
+  color: #5e0015;
   font-family: 'PPNeueMontreal', system-ui, sans-serif;
-  font-size: 16px;
+  font-size: 22px;
   letter-spacing: 0.04em;
   cursor: pointer;
   opacity: 0;
@@ -3564,8 +3657,8 @@ body.sb-cursor-none .globe-container {
 /* Left column: character art + description (mirrors .results-top-left) */
 .comic-results-left {
   position: absolute;
-  top: var(--pv);
-  left: var(--ph);
+  top: calc(var(--pv) * 1.5);
+  left: calc(var(--ph) + 2vw);
   z-index: 18;
   display: flex;
   flex-direction: column;
@@ -3573,9 +3666,13 @@ body.sb-cursor-none .globe-container {
 }
 
 .comic-result-char-img {
-  width: calc(10 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 9*var(--gap));
-  height: auto;
-  display: block;
+  margin: 0;
+  font-family: 'PPNeueCorp', sans-serif;
+  font-weight: 500;
+  font-size: clamp(80px, 14vw, 210px);
+  line-height: 0.75;
+  letter-spacing: -0.01em;
+  color: #5e0015;
   opacity: 0;
   transform: translateY(28px);
   transition: opacity 0.7s ease, transform 0.9s cubic-bezier(0.4, 0, 0.2, 1);
@@ -3583,18 +3680,47 @@ body.sb-cursor-none .globe-container {
 .comic-result-char-img.slide-in { opacity: 1; transform: translateY(0); }
 
 .comic-result-desc {
-  margin: 2.2vh 0 0;
+  margin: 5vh 0 0;
   font-family: 'PPNeueMontreal', system-ui, sans-serif;
   font-weight: 400;
   font-size: 26.5px;
-  line-height: 37px;
+  line-height: 1.2;
   color: var(--text-primary);
-  max-width: calc(5 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 4*var(--gap));
+  max-width: calc(3.8 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 3*var(--gap));
   opacity: 0;
   transform: translateY(20px);
   transition: opacity 0.7s ease, transform 0.9s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .comic-result-desc.slide-in { opacity: 1; transform: translateY(0); }
+
+.comic-result-stat {
+  margin: 6vh 0 0;
+  display: inline-block;
+  width: fit-content;
+  padding: 10px 22px;
+  background: #fff7aa;
+  border-radius: 999px;
+  font-family: 'PPNeueMontreal', system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 1.3;
+  color: #5e0015;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.7s ease, transform 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.comic-result-stat strong {
+  font-weight: 700;
+}
+.comic-result-stat.slide-in { opacity: 1; transform: translateY(0); }
+
+@keyframes result-art-enter {
+  0%   { transform: translateX(-25vw) translateY(200vh) scale(1.4);
+         animation-timing-function: cubic-bezier(0.15, 0, 0.05, 1); }
+  58%  { transform: translateX(-25vw) translateY(26vh) scale(1.4);
+         animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+  100% { transform: none; }
+}
 
 /* Result art at its final bottom-right position (mirrors .results-art-img) */
 .comic-result-art {
@@ -3604,30 +3730,21 @@ body.sb-cursor-none .globe-container {
   width: calc((5 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 4*var(--gap)) * 1.035);
   height: auto;
   z-index: 18;
-  opacity: 0;
-  transform: translateY(100vh);
-  transition: opacity 0.8s ease, transform 1s cubic-bezier(0.2, 0, 0.2, 1);
+  transform: translateY(200vh);   /* parked off-screen until slide-in */
   pointer-events: none;
 }
-.comic-result-art.slide-in { opacity: 1; transform: translateY(0); }
+.comic-result-art.slide-in {
+  animation: result-art-enter 2.2s forwards;
+}
 
 /* ---- Per-result sizing overrides (mirror the #screen-results overrides) ---- */
-#screen-comic-reveal.result-nonchalant .comic-result-char-img {
-  width: calc(8.8 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 7.8*var(--gap));
-}
-#screen-comic-reveal.result-runaway .comic-result-char-img {
-  width: calc(7 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 6*var(--gap));
-}
-#screen-comic-reveal.result-knowitall .comic-result-char-img {
-  width: calc(8.4 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 7.4*var(--gap));
-}
+
 #screen-comic-reveal.result-knowitall .comic-result-art {
-  width: calc(4.5 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 3.5*var(--gap));
+  width: calc(4.8 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 3.8*var(--gap));
   right: calc(var(--ph) * 2 + (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + var(--gap));
+  bottom: calc(var(--pv) * 1.5);
 }
-#screen-comic-reveal.result-clueless .comic-result-char-img {
-  width: calc(6.5 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 5.5*var(--gap));
-}
+
 #screen-comic-reveal.result-clueless .comic-result-art {
   width: calc(4 * (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + 3*var(--gap));
   right: calc(var(--ph) * 2 + (100vw - 2*var(--ph) - 11*var(--gap)) / 12 + var(--gap));
@@ -3766,15 +3883,21 @@ body.share-result.share-answers #share-comic-frame {
 }
 
 /* Keyword tags injected into the share comic frame */
+.share-keyword-tag--label {
+  padding-top: 4px;
+  padding-bottom: 4px;
+  font-size: clamp(12px, 1vw, 15px) !important;
+}
+
 .share-keyword-tag {
   position: absolute;
   z-index: 20;
   background: #fef5e4;
-  border: 2px solid #fed5d6;
+  border: 2px solid #fe80fe;
   border-radius: 0;
   padding: 9px 18px;
   font-family: 'PPNeueCorp', system-ui, sans-serif;
-  font-size: clamp(15px, 1.3vw, 20px);
+  font-size: clamp(12px, 1vw, 15px);
   font-weight: 500;
   color: #6d1631;
   white-space: nowrap;
@@ -3822,6 +3945,7 @@ body.share-mode #share-nav {
 }
 
 .share-dot {
+  position: relative;
   padding: 14px 32px;
   border-radius: 100px;
   background: transparent;
@@ -3832,6 +3956,29 @@ body.share-mode #share-nav {
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s, color 0.2s;
+  overflow: visible;
+}
+
+.share-dot::after {
+  content: '';
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  transform: translateX(-50%) scale(0);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #6d1631;
+  border: 2px solid #6d1631;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+}
+
+.share-dot.selected::after {
+  transform: translateX(-50%) scale(1);
+  background-color: #6d1631;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cpath d='M5.5 11.5l3.5 3.5 7.5-8' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
+  background-size: cover;
 }
 
 .share-dot.selected {

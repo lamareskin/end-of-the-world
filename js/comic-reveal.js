@@ -1,5 +1,5 @@
 class ComicRevealInteraction {
-  constructor({ screen, sceneEl, titleEl, titleBoxEl, inboxCaptionEl, characterEl, floatingCharEl, panelQ1, panelQ4, panelQ5, boxQ4, footboxEl, navBackEl, navForwardEl, introHintEl, bubbleEl, bubbleTextEl, bubbleLine1El, bubbleLine2El, bubbleCharEl, bubbleCharTextEl, shapeQ4El, shapeCharEl, bgOverlayEl, globeEl, globeResultArtEl, resultCharEl, resultArtEl, resultDescEl, toResultsEl }) {
+  constructor({ screen, sceneEl, titleEl, titleBoxEl, inboxCaptionEl, characterEl, floatingCharEl, panelQ1, panelQ4, panelQ5, boxQ4, footboxEl, navBackEl, navForwardEl, introHintEl, bubbleEl, bubbleTextEl, bubbleLine1El, bubbleLine2El, bubbleCharEl, bubbleCharTextEl, shapeQ4El, shapeCharEl, bgOverlayEl, globeEl, globeResultArtEl, resultCharEl, resultArtEl, resultDescEl, resultStatEl, toResultsEl, starsCanvasEl }) {
     this.screen      = screen;
     this.sceneEl     = sceneEl;
     this.titleEl     = titleEl;
@@ -29,7 +29,13 @@ class ComicRevealInteraction {
     this.resultCharEl      = resultCharEl;       // char art, top-left
     this.resultArtEl       = resultArtEl;        // result art, bottom-right final position
     this.resultDescEl      = resultDescEl;       // description paragraph
+    this.resultStatEl      = resultStatEl;       // "X% of Y users" stat line
     this.toResultsEl       = toResultsEl;        // "to the results" button
+    this.starsCanvasEl     = starsCanvasEl;
+
+    this._starsRaf   = null;
+    this._starsLines = [];
+    this._shouldCount = false;
 
     this._autoBubble      = false;
     this._autoBubbleTimer = null;
@@ -49,9 +55,11 @@ class ComicRevealInteraction {
     // 6 = zoom back out (bubble hides) -> 7 = his bubble reappears "I will
     // spend my last day X" -> 8 = Q5 image appears ->
     // 9 = temporary "continue" trigger
-    this.STAGE_COUNT = 8;
-    this.stage        = -1;
-    this._svgLoaded   = false;
+    this.STAGE_COUNT      = 9;
+    this.stage            = -1;
+    this._svgLoaded       = false;
+    this.onProgressStep   = null; // called on each forward step
+    this.onResultsShown   = null; // called when share/restart buttons appear
     this._svgEl       = null;
     this._clickLocked = false;
 
@@ -132,7 +140,18 @@ class ComicRevealInteraction {
 
     this.Q3_LEGS    = ['stresslegs', 'fearlegs', 'deniallegs', 'relieflegs', 'shocklegs'];
     this.Q3_FACE    = ['stressface', 'fearface', 'normal_face', 'reliefface', 'shockface']; // Denial reuses the default face
-    this.Q3_CAPTION = ['stressful', 'terrifying', 'like denial', 'relieving', 'shocking'];
+    // Per-emotion phrase data for the character speech bubble.
+    // group: emotions sharing the same opener can use the short continuation form.
+    // short: used when the previous emotion is in the same group ("and scary").
+    // full: used when crossing groups ("and I'm shocked").
+    // connector: 'and' normally, 'but' for relief (contrasts with negative emotions).
+    this.Q3_PHRASES = [
+      { standalone: 'that sounds\nstressful', group: 'that-sounds', short: 'stressful',  full: "that sounds stressful",  connector: 'and' }, // 0 stress
+      { standalone: 'that sounds\nscary',     group: 'that-sounds', short: 'scary',       full: "that sounds scary",      connector: 'and' }, // 1 fear
+      { standalone: "I am\nin denial",         group: 'denial',      short: "I'm in denial", full: "I'm in denial",         connector: 'and' }, // 2 denial (always full)
+      { standalone: "that's\nrelieving",       group: 'thats',       short: 'relieving',   full: "i'm also relieved",     connector: 'but' }, // 3 relief
+      { standalone: "I'm\nshocked",            group: 'im',          short: 'shocked',     full: "I'm shocked",            connector: 'and' }, // 4 shock
+    ];
 
     this.Q5_FILES   = ['doomcomic.svg', 'naturecomic.svg', 'lovedcomic.svg', 'recklesscomic.svg', 'showcomic.svg'];
     this.Q5_CAPTION = ['doomscrolling', 'with Nature', 'with loved ones', 'doing something Reckless', 'preparing for the show'];
@@ -220,8 +239,9 @@ class ComicRevealInteraction {
     });
   }
 
-  async start(resultKey) {
-    this._resultKey = resultKey || null;
+  async start(resultKey, shouldCount) {
+    this._resultKey   = resultKey || null;
+    this._shouldCount = !!shouldCount;
     await this._ensureCharacterSvg();
     this.stage = 0; // skip the "scroll down" intro hint — character appears immediately
     this._render(false);
@@ -253,7 +273,7 @@ class ComicRevealInteraction {
       const r = QUIZ_RESULTS[this._resultKey];
       if (r) {
         this.resultArtEl.src          = r.art;
-        this.resultCharEl.src         = r.char;
+        this.resultCharEl.innerHTML = r.title.replace('The ', 'The<br>');
         this.resultDescEl.textContent = r.desc;
       }
     }
@@ -293,6 +313,8 @@ class ComicRevealInteraction {
 
   reset() {
     this.stop();
+    const cycleBtn = document.getElementById('btn-dev-cycle-result');
+    if (cycleBtn) cycleBtn.style.display = '';
     this.stage = -1;
     this._autoBubble          = false;
     this._autoBubbleTimer     = null;
@@ -304,15 +326,18 @@ class ComicRevealInteraction {
     this._exitSequenceActive  = false;
     this._exitResultsStarted  = false;
     this._resultKey           = null;
+    this._shouldCount         = false;
     this.comicSceneSnapshot   = null;
     // Clean up exit sequence DOM state
-    this.screen.classList.remove('exiting',
+    this.screen.classList.remove('exiting', 'result-shown',
       'result-nonchalant', 'result-clueless', 'result-knowitall', 'result-runaway');
+    this._stopStars();
     this.bgOverlayEl.classList.remove('gradient-in', 'gradient-warm', 'full-pink');
     this.globeEl.classList.remove('globe-rising', 'result-touched', 'globe-hide');
     this.resultCharEl.classList.remove('slide-in');
     this.resultArtEl.classList.remove('slide-in');
     this.resultDescEl.classList.remove('slide-in');
+    if (this.resultStatEl) this.resultStatEl.classList.remove('slide-in');
     // Restore the real character (hidden via inline style when the
     // floatingperson.svg pose took over, see _runExitSequence) and reset that
     // floating pose element back to its own hidden default state.
@@ -349,6 +374,7 @@ class ComicRevealInteraction {
     if (dir > 0 && this.stage === this.STAGE_COUNT) {
       this._clickLocked = true;
       setTimeout(() => { this._clickLocked = false; }, 650);
+      if (this.onProgressStep) this.onProgressStep();
       this._runExitSequence();
       return;
     }
@@ -364,6 +390,7 @@ class ComicRevealInteraction {
         this._render();
         this._clickLocked = true;
         setTimeout(() => { this._clickLocked = false; }, 650);
+        if (this.onProgressStep) this.onProgressStep();
         return;
       }
       if (dir < 0 && this._q3Revealed > 1) {
@@ -378,10 +405,21 @@ class ComicRevealInteraction {
     let next = this.stage + dir;
     // Stage 6 has no visible content — skip it in both directions.
     if (next === 6) next += dir;
+    // Stage 9 (Q6 simulation text) — skip if answer was No or No opinion.
+    if (next === 9 && !this._shouldShowQ6Stage()) next += dir;
+    // Skipping may push us past STAGE_COUNT — treat that as the exit trigger.
+    if (dir > 0 && next > this.STAGE_COUNT) {
+      this._clickLocked = true;
+      setTimeout(() => { this._clickLocked = false; }, 650);
+      if (this.onProgressStep) this.onProgressStep();
+      this._runExitSequence();
+      return;
+    }
     if (next >= -1 && next <= this.STAGE_COUNT) {
       this._clickLocked = true;
       const prevStage = this.stage;
       this.stage = next;
+      if (dir > 0 && this.onProgressStep) this.onProgressStep();
       if (next === -1) this._autoBubble = false;
       this._render(true);
       // Zoom-out transition: lock shorter so next click isn't eaten
@@ -397,6 +435,12 @@ class ComicRevealInteraction {
     return Array.isArray(raw) ? raw : [raw];
   }
 
+  // Stage 9 (Q6 simulation text) only shows for Yes (2) or Definitely (3).
+  _shouldShowQ6Stage() {
+    const q6 = State.getAnswer(5);
+    return q6 === 2 || q6 === 3;
+  }
+
   // Panels stagger off the top, the character swaps to the floating pose and
   // floats; ~1s later a "to the results" button fades in below him. Clicking
   // it (see _onToResults) shrinks him away and reveals the result page.
@@ -409,7 +453,7 @@ class ComicRevealInteraction {
       if (r) {
         this.globeResultArtEl.src    = r.art;
         this.resultArtEl.src         = r.art;
-        this.resultCharEl.src        = r.char;
+        this.resultCharEl.innerHTML = r.title.replace('The ', 'The<br>');
         this.resultDescEl.textContent = r.desc;
       }
     }
@@ -419,6 +463,9 @@ class ComicRevealInteraction {
     // Capture the comic scene before panels slide away — used by the share viewer
     // comic slide. cloneNode(true) preserves all inline style transforms set by JS.
     this.comicSceneSnapshot = this.sceneEl.cloneNode(true);
+
+    // Clear any full-screen text (stages 2, 7, 9) before exit animation.
+    this.causeTextEl.classList.remove('visible');
 
     // Slide panels/chrome off top; hide bubbles.
     this.navBackEl.classList.remove('visible');
@@ -437,6 +484,7 @@ class ComicRevealInteraction {
     _t(() => {
       this.characterEl.style.display = 'none';
       if (this.floatingCharEl) this.floatingCharEl.classList.add('floating');
+      this._startStars();
     }, 600);
 
     // 1600ms: background begins blooming toward pink.
@@ -448,6 +496,38 @@ class ComicRevealInteraction {
     _t(() => {
       if (this.toResultsEl) this.toResultsEl.classList.add('visible');
     }, 1600);
+  }
+
+  // Seed defaults so the stat never shows "0 of 0". These are plausible
+  // starting numbers used until real completions accumulate in localStorage.
+  _getStats() {
+    const SEED = { total: 47, results: { nonchalant: 13, clueless: 11, knowitall: 15, runaway: 8 } };
+    try {
+      const raw = localStorage.getItem('pagmar_stats');
+      if (!raw) return SEED;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed.total !== 'number') return SEED;
+      return parsed;
+    } catch (e) { return SEED; }
+  }
+
+  _recordCompletion(resultKey) {
+    if (!resultKey) return;
+    try {
+      const stats = this._getStats();
+      stats.total = (stats.total || 0) + 1;
+      if (!stats.results) stats.results = {};
+      stats.results[resultKey] = (stats.results[resultKey] || 0) + 1;
+      localStorage.setItem('pagmar_stats', JSON.stringify(stats));
+    } catch (e) { /* localStorage blocked — silently skip */ }
+  }
+
+  _buildStatText(resultKey) {
+    const stats = this._getStats();
+    const total = stats.total || 1;
+    const count = (stats.results && stats.results[resultKey]) || 0;
+    const pct   = Math.round((count / total) * 100);
+    return `<strong>${pct}%</strong> of ${total} users got this result!`;
   }
 
   // "to the results" click: hide the button, shrink the character away in
@@ -481,23 +561,36 @@ class ComicRevealInteraction {
       el.style.transform = '';
     });
 
-    // Once the shrink (0.6s) finishes and he's invisible, build the result page.
-    const id = setTimeout(() => this._revealResults(), 620);
+    // Once the shoot-down (0.5s) finishes, build the result page.
+    if (this._shouldCount) this._recordCompletion(this._resultKey);
+    const id = setTimeout(() => {
+      this._stopStars();
+      this._revealResults();
+    }, 520);
     this._exitTimeouts.push(id);
   }
 
   // Result page assembles on its own: art rises from below first, then the
   // character art and the description follow.
   _revealResults() {
+    this.screen.classList.add('result-shown');
     this.bgOverlayEl.classList.add('full-pink');
     this.resultArtEl.classList.add('slide-in');
-    const t1 = setTimeout(() => this.resultCharEl.classList.add('slide-in'), 700);
-    const t2 = setTimeout(() => this.resultDescEl.classList.add('slide-in'), 1400);
-    // 1 second after the last element (desc at 1400ms) slides in, show buttons.
+    // Populate stat text (uses whatever is in localStorage at reveal time,
+    // which already includes the just-recorded completion if _shouldCount).
+    if (this.resultStatEl && this._resultKey) {
+      this.resultStatEl.innerHTML = this._buildStatText(this._resultKey);
+    }
+    const t1 = setTimeout(() => this.resultCharEl.classList.add('slide-in'), 1400);
+    const t2 = setTimeout(() => this.resultDescEl.classList.add('slide-in'), 1900);
     const t3 = setTimeout(() => {
+      if (this.resultStatEl) this.resultStatEl.classList.add('slide-in');
       document.getElementById('btn-restart').classList.add('visible');
       document.getElementById('btn-share').classList.add('visible');
-    }, 2400);
+      const cycleBtn = document.getElementById('btn-dev-cycle-result');
+      if (cycleBtn) cycleBtn.style.display = 'block';
+      if (this.onResultsShown) this.onResultsShown();
+    }, 3100);
     this._exitTimeouts.push(t1, t2, t3);
   }
 
@@ -558,21 +651,29 @@ class ComicRevealInteraction {
       this.bubbleEl.classList.remove('visible');
     }
 
-    // Full-screen text: stage 2 = "it will be caused by X", stage 7 = "You will spend your final day X".
+    // Full-screen text: stage 2 = "it will be caused by X", stage 7 = "You will spend your final day X",
+    // stage 9 = Q6 simulation line (only if answer was Yes/Definitely).
     let fullScreenText = '';
+    let fullScreenHtml = '';
     if (this.stage === 2 && q1 !== null)
       fullScreenText = `it will be caused by ${this.Q1_CAPTION[q1]}`;
     else if (this.stage === 7 && q5 !== null)
       fullScreenText = `You will spend your final day ${this.Q5_CAPTION[q5]}`;
-    this.causeTextEl.textContent = fullScreenText;
-    this.causeTextEl.classList.toggle('visible', fullScreenText !== '');
-    const hideForFullScreen = this.stage === 2 || this.stage === 7;
+    else if (this.stage === 9)
+      fullScreenHtml = 'And you think it\'s<br>all a simulation,<br>so does any of it matter?';
+    if (fullScreenHtml) {
+      this.causeTextEl.innerHTML = fullScreenHtml;
+    } else {
+      this.causeTextEl.textContent = fullScreenText;
+    }
+    this.causeTextEl.classList.toggle('visible', fullScreenText !== '' || fullScreenHtml !== '');
+    const hideForFullScreen = this.stage === 2 || this.stage === 7 || this.stage === 9;
     this.characterEl.style.transition = hideForFullScreen ? 'none' : '';
     this.characterEl.style.opacity    = hideForFullScreen ? '0' : '';
     this.panelQ4.style.transition     = hideForFullScreen ? 'none' : '';
     this.panelQ4.style.opacity        = hideForFullScreen ? '0' : '';
-    // Stage 7 also hides all comic panels so only the text + arrows remain.
-    const hideAllPanels = this.stage === 7;
+    // Stages 7 and 9 also hide all comic panels so only the text + arrows remain.
+    const hideAllPanels = this.stage === 7 || this.stage === 9;
     this.panelQ1.style.transition  = hideAllPanels ? 'none' : '';
     this.panelQ1.style.opacity     = hideAllPanels ? '0' : '';
     this.boxQ4.style.transition    = hideAllPanels ? 'none' : '';
@@ -640,9 +741,15 @@ class ComicRevealInteraction {
     if (this.stage === 4 && q3list.length > 0 && this._zoomSettled) {
       const shown = Math.min(Math.max(this._q3Revealed, 1), q3list.length);
       const idx   = q3list[shown - 1];
-      charBubbleText = shown === 1
-        ? `that sounds\n${this.Q3_CAPTION[idx]}`
-        : `and\n${this.Q3_CAPTION[idx]}`;
+      const phrase = this.Q3_PHRASES[idx];
+      if (shown === 1) {
+        charBubbleText = phrase.standalone;
+      } else {
+        const prevPhrase = this.Q3_PHRASES[q3list[shown - 2]];
+        const conn       = phrase.connector;
+        const sameGroup  = prevPhrase.group === phrase.group;
+        charBubbleText   = `${conn}\n${sameGroup ? phrase.short : phrase.full}`;
+      }
     }
     this.bubbleCharTextEl.innerHTML = charBubbleText.replace('\n', '<br>');
     if (!charBubbleText) this.bubbleCharEl.style.transition = 'none';
@@ -852,6 +959,9 @@ class ComicRevealInteraction {
     // Use the exact same character size as the resting state so nothing
     // resizes when it later shifts right.
     const charW    = Math.min(3.3 * naturalUnit, 0.74 * vh * 470.53 / 771.45);
+    // Force full-size character at stages 0-2 — _layoutQ1Q5 may have applied
+    // s<1 for panel-fit constraints that don't apply here since Q1/Q5 are hidden.
+    this.screen.style.setProperty('--char-w', `${charW}px`);
     // Resting left (mirrors --char-left-rest / _layoutQ1Q5 at s=1).
     const restLeft = ph + 5.05 * naturalUnit;
     // Nudged left (mirrors .comic-character.nudged CSS rule).
@@ -1110,5 +1220,86 @@ class ComicRevealInteraction {
     this.bubbleEl.style.left  = toVw(bubbleLeft);
     this.bubbleEl.style.width = toVw(bubbleWidth);
     this.bubbleEl.style.top   = toVh(bubbleTop);
+  }
+
+  _startStars() {
+    const canvas = this.starsCanvasEl;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    const resize = () => {
+      canvas.width  = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+    };
+    resize();
+
+    canvas.classList.add('stars-active');
+
+    const W = () => canvas.width;
+    const H = () => canvas.height;
+
+    const rand = (a, b) => a + Math.random() * (b - a);
+
+    const spawnStar = () => ({
+      x:       rand(0, W()),
+      y:       H() + rand(0, H() * 0.3),   // start below screen
+      len:     rand(40, 140),               // inconsistent lengths
+      speed:   rand(6, 22),                 // inconsistent speeds
+      width:   rand(0.4, 1.6),             // thin and varied
+      alpha:   rand(0.3, 0.9),
+    });
+
+    this._starsLines = Array.from({ length: 10 }, spawnStar);
+
+    let last = performance.now();
+    const tick = (now) => {
+      const dt = (now - last) / 16.67;
+      last = now;
+      ctx.clearRect(0, 0, W(), H());
+
+      for (const s of this._starsLines) {
+        s.y -= s.speed * dt;
+
+        ctx.save();
+        ctx.globalAlpha = s.alpha;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth   = s.width;
+        ctx.lineCap     = 'round';
+        ctx.beginPath();
+        ctx.moveTo(s.x, s.y);
+        ctx.lineTo(s.x, s.y + s.len);
+        ctx.stroke();
+        ctx.restore();
+
+        // reset when fully off the top
+        if (s.y + s.len < 0) {
+          Object.assign(s, spawnStar());
+          // stagger so they don't all reset at once
+          s.y = H() + rand(0, H() * 0.5);
+        }
+      }
+
+      // randomly add a new star occasionally for inconsistency
+      if (Math.random() < 0.018 && this._starsLines.length < 30) {
+        this._starsLines.push(spawnStar());
+      }
+
+      this._starsRaf = requestAnimationFrame(tick);
+    };
+
+    this._starsRaf = requestAnimationFrame(tick);
+  }
+
+  _stopStars() {
+    if (this._starsRaf) {
+      cancelAnimationFrame(this._starsRaf);
+      this._starsRaf = null;
+    }
+    if (this.starsCanvasEl) {
+      this.starsCanvasEl.classList.remove('stars-active');
+      const ctx = this.starsCanvasEl.getContext('2d');
+      ctx.clearRect(0, 0, this.starsCanvasEl.width, this.starsCanvasEl.height);
+    }
+    this._starsLines = [];
   }
 }
