@@ -251,7 +251,11 @@ class SidebarInteraction {
     b.removeEventListener('click', this._inlineNextHandler);
     if (this._inlineNextEnterHandler) b.removeEventListener('mouseenter', this._inlineNextEnterHandler);
     if (this._inlineNextLeaveHandler) b.removeEventListener('mouseleave', this._inlineNextLeaveHandler);
-    this._setCustomCursorState('normal');
+    // _enableNext() (which calls this) re-fires on every mousemove during a
+    // Q2 slider drag via _setSliderSelection — unconditionally resetting to
+    // 'normal' here was stomping the 'grab' cursor on every pixel of drag
+    // movement. Skip while a drag owns the cursor state.
+    if (!this._sliderState) this._setCustomCursorState('normal');
     if (b.classList.contains('sb-next-inline')) {
       b.classList.remove('sb-next-inline');
       b.innerHTML = '';
@@ -305,8 +309,13 @@ class SidebarInteraction {
       this._inlineNextIndex   = nextQ;
       this._inlineNextHandler = () => this._fireNext();
       b.addEventListener('click', this._inlineNextHandler);
-      this._inlineNextEnterHandler = () => this._setCustomCursorState('click');
-      this._inlineNextLeaveHandler = () => this._setCustomCursorState('normal');
+      // Guard against the Q2 slider knob: while dragging it, the pointer can
+      // cross into this bubble's area (it's the next one down) and these
+      // would stomp the 'grab' cursor state mid-drag. Skip while a slider
+      // drag is active — the drag's own mouseup handler restores the
+      // correct cursor state when it ends.
+      this._inlineNextEnterHandler = () => { if (!this._sliderState) this._setCustomCursorState('click'); };
+      this._inlineNextLeaveHandler = () => { if (!this._sliderState) this._setCustomCursorState('normal'); };
       b.addEventListener('mouseenter', this._inlineNextEnterHandler);
       b.addEventListener('mouseleave', this._inlineNextLeaveHandler);
 
@@ -388,28 +397,57 @@ class SidebarInteraction {
 
   hide() { this._container.style.display = 'none'; }
 
+  // Builds one equally-sized stroked pill per step, replacing whatever
+  // progress bubbles (if any) already exist. Normally called from inside
+  // playExitAnimation()'s Phase 3b so they're ready the moment the old
+  // answer bubbles finish collapsing — see the totalSteps param there.
+  _buildProgressBubbles(totalSteps) {
+    if (this._progressBubbles) this._progressBubbles.forEach(b => b.remove());
+    this._progressBubbles = [];
+    for (let i = 0; i < totalSteps; i++) {
+      const b = document.createElement('div');
+      b.className = 'sb-progress-bubble';
+      const fill = document.createElement('div');
+      fill.className = 'sb-progress-bubble-fill';
+      b.appendChild(fill);
+      this._container.appendChild(b);
+      this._progressBubbles.push(b);
+    }
+    // Fade/scale them in on the next frame so the CSS transition actually
+    // animates instead of snapping straight to the visible state.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      this._progressBubbles.forEach(b => b.classList.add('sb-progress-bubble-visible'));
+    }));
+  }
+
   initProgress(totalSteps) {
     this._progressStep  = 0;
     this._progressTotal = totalSteps;
-    if (this._progressDot) this._progressDot.remove();
-    const dot = document.createElement('div');
-    dot.className = 'sb-progress-indicator';
-    this._container.appendChild(dot);
-    this._progressDot = dot;
+    // playExitAnimation() usually already built the right number of bubbles
+    // ahead of time; only (re)build here if that didn't happen (e.g. a flow
+    // that skips the exit animation) or the count is somehow out of sync.
+    if (!this._progressBubbles || this._progressBubbles.length !== totalSteps) {
+      this._buildProgressBubbles(totalSteps);
+    } else {
+      this._progressBubbles.forEach(b => {
+        const fill = b.querySelector('.sb-progress-bubble-fill');
+        if (fill) fill.classList.remove('sb-progress-bubble-fill-visible');
+      });
+    }
   }
 
   advanceProgress() {
-    if (!this._progressDot || this._progressStep >= this._progressTotal) return;
+    if (!this._progressBubbles || this._progressStep >= this._progressTotal) return;
+    const bubble = this._progressBubbles[this._progressStep];
+    const fill   = bubble && bubble.querySelector('.sb-progress-bubble-fill');
+    if (fill) fill.classList.add('sb-progress-bubble-fill-visible');
     this._progressStep++;
-    const frac = this._progressStep / this._progressTotal;
-    const ch   = this._container.getBoundingClientRect().height;
-    const dotH = 36;
-    const pad  = 12;
-    this._progressDot.style.top = (pad + frac * (ch - dotH - pad * 2)) + 'px';
   }
 
   dismissProgress() {
-    if (this._progressDot) this._progressDot.style.opacity = '0';
+    if (this._progressBubbles) {
+      this._progressBubbles.forEach(b => { b.style.transition = 'opacity 0.3s ease'; b.style.opacity = '0'; });
+    }
     this._container.style.transition = 'width 0.45s cubic-bezier(0.4, 0, 0.6, 1)';
     this._container.style.width = '0px';
     setTimeout(() => { this._container.style.display = 'none'; }, 480);
@@ -471,7 +509,15 @@ class SidebarInteraction {
 
     this._setupCustomCursor();
 
-    setTimeout(() => {
+    // Stored so reset()/collapseActive() can cancel it — an unstored timer
+    // here can never be cancelled, so leaving a question quickly enough
+    // (before this fires) and later landing back on the same question
+    // index in a NEW session could let this stale closure fire anyway
+    // (the _activeQ guard alone doesn't distinguish "still the same
+    // session" from "coincidentally the same index again"), rendering a
+    // bubble that should still be a plain numbered placeholder.
+    clearTimeout(this._expandRenderTimer);
+    this._expandRenderTimer = setTimeout(() => {
       if (this._activeQ !== questionIndex) return;
       if (!cfg) return;
       if (cfg.type === 'click-icons')   this._renderClickIcons(bubble, cfg, questionIndex);
@@ -538,8 +584,13 @@ class SidebarInteraction {
   }
 
   // Called after the last question is answered — keeps sidebar visible while
-  // icons fly to screen center (vacuum effect), then shrinks and pinks the bar.
-  playExitAnimation(onComplete, onReady) {
+  // icons fly to screen center (vacuum effect), then shrinks and pinks the
+  // bar. totalSteps (if known ahead of time) lets Phase 3b build the final
+  // per-step progress bubbles directly instead of the old single stretched
+  // bubble — pass it when the caller already knows the step count (see
+  // _startComicLoading in app.js); falls back to no bubbles yet if omitted,
+  // in which case the first initProgress() call builds them instead.
+  playExitAnimation(onComplete, onReady, totalSteps) {
     const cx = window.innerWidth  / 2;
     const cy = window.innerHeight / 2;
 
@@ -682,17 +733,22 @@ class SidebarInteraction {
     const SHRINK_MS  = 650;  // horizontal width squeeze duration
     const STRETCH_MS = 1000; // vertical stretch duration
 
-    // Phase 3a — rings vanish instantly, container squeezes horizontally
+    // Phase 3a — rings vanish instantly, container squeezes horizontally.
+    // 18px here (thinner than the usual 28px minimum used elsewhere, e.g.
+    // squeezeForArt/show()) — an intentional one-off exception for just this
+    // loading→result progress bar, per explicit request.
     this._exitAnimTimer3 = setTimeout(() => {
       this._container.classList.add('sb-merging');
       // Clear inline transition override so CSS sb-exiting transition takes effect
       this._container.style.transition = '';
       this._bubbles.forEach(b => { b.style.transition = ''; });
       this._container.getBoundingClientRect(); // force reflow before animating
-      this._container.style.width = '28px';
+      this._container.style.width = '18px';
     }, VIBRATE_MS + SUCK_MS + PAUSE_MS);
 
-    // Phase 3b — top bubble stretches to fill full height, others collapse away
+    // Phase 3b — all 6 answer bubbles collapse away together (instead of one
+    // stretching to overpower the rest); the per-step progress bubbles fade
+    // in to take their place, evenly filling the same space.
     this._exitAnimTimer4 = setTimeout(() => {
       if (onReady) onReady();
       const EASE = 'cubic-bezier(0.4, 0, 0.6, 1)';
@@ -702,18 +758,23 @@ class SidebarInteraction {
       this._nextBubble.style.flexGrow    = '0';
       this._nextBubble.style.flexBasis   = '0px';
 
-      this._bubbles.forEach((b, i) => {
-        b.style.transition = transition;
-        b.style.minHeight  = '0';
-        if (i === 0) {
-          b.style.flexGrow  = '100';
-          b.style.flexBasis = '0';
-        } else {
-          b.style.flexGrow    = '0';
-          b.style.flexBasis   = '0px';
-          b.style.borderWidth = '0';
-        }
+      this._bubbles.forEach(b => {
+        b.style.transition  = transition;
+        b.style.minHeight   = '0';
+        b.style.flexGrow    = '0';
+        b.style.flexBasis   = '0px';
+        b.style.borderWidth = '0';
       });
+
+      // Build the per-step progress bubbles right away — they fade/scale in
+      // over their own shorter 0.5s transition (see .sb-progress-bubble-
+      // visible) starting from invisible, so they don't visually compete
+      // with the old bubbles' collapse even though both are mid-flex-
+      // transition at the same time. onReady() above is what lets
+      // _runPreComicSequence's initProgress() call also reach this point —
+      // building it here first means that call just resets fill state
+      // instead of redundantly rebuilding (see the length check there).
+      if (totalSteps) this._buildProgressBubbles(totalSteps);
     }, VIBRATE_MS + SUCK_MS + PAUSE_MS + SHRINK_MS);
 
     // Clean up after everything
@@ -728,11 +789,13 @@ class SidebarInteraction {
     clearTimeout(this._exitAnimTimer2);
     clearTimeout(this._exitAnimTimer3);
     clearTimeout(this._exitAnimTimer4);
+    clearTimeout(this._exitAnimTimer5);
     clearTimeout(this._exitAnimTimerGlow);
     this._exitAnimTimer     = null;
     this._exitAnimTimer2    = null;
     this._exitAnimTimer3    = null;
     this._exitAnimTimer4    = null;
+    this._exitAnimTimer5    = null;
     this._exitAnimTimerGlow = null;
     if (this._exitAnimClones) {
       this._exitAnimClones.forEach(el => el.remove());
@@ -752,12 +815,13 @@ class SidebarInteraction {
   }
 
   reset() {
+    clearTimeout(this._expandRenderTimer);
     this._cleanupExitAnim();
     this._container.classList.remove('sb-merging');
     this._container.style.display = 'none';
     this._container.style.width = '';
     this._container.style.transition = '';
-    if (this._progressDot) { this._progressDot.remove(); this._progressDot = null; }
+    if (this._progressBubbles) { this._progressBubbles.forEach(b => b.remove()); this._progressBubbles = null; }
     this._progressStep  = 0;
     this._progressTotal = 0;
     this._cleanupSlider();
@@ -775,6 +839,13 @@ class SidebarInteraction {
       if (i === 0 || i === 3) b.classList.add('sb-bubble-diamond');
       b.innerHTML = '';
       this._reinjectSvg(b, i);
+      // _buildDOM() adds this once at initial setup — reset() never
+      // restored it, so bubbles were left permanently numberless after the
+      // first "start over" via the home button.
+      const num = document.createElement('span');
+      num.className = 'sb-bubble-num';
+      num.textContent = i + 1;
+      b.appendChild(num);
       b.style.clipPath    = '';
       b.style.flexGrow    = '';
       b.style.flexBasis   = '';
@@ -794,6 +865,7 @@ class SidebarInteraction {
   // whatever mid-interaction UI (chips, wheel rotation, etc.) it had.
   collapseActive() {
     if (this._activeQ < 0) return;
+    clearTimeout(this._expandRenderTimer);
     const i = this._activeQ;
     this._cleanupSlider();
     if (this._wheelCleanup) { this._wheelCleanup(); this._wheelCleanup = null; }
@@ -1616,6 +1688,14 @@ class SidebarInteraction {
       };
       if (this.onSelect) this.onSelect(qIndex, current);
       this._enableNext(qIndex === this._totalQ - 1 ? 'Continue' : 'Next');
+
+      // goTo() only ever runs while the mouse is actually over the wheel
+      // (scroll or icon click) — but repositioning the slots above toggles
+      // their pointer-events mid-transition, which can make the browser
+      // briefly re-target hit-testing away from the bubble and fire its
+      // mouseleave, resetting the cursor to 'normal' even though we're
+      // still hovering it. Re-assert 'scroll' here so it doesn't drop.
+      this._setCustomCursorState('scroll');
     };
 
     // Click a slot to bring it to center

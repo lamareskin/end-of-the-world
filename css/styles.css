@@ -153,8 +153,8 @@ button {
   margin: 0;
   font-family: 'PPNeueCorp', sans-serif;
   font-weight: 500;
-  font-size: clamp(60px, 11vw, 168px);
-  line-height: 1;
+  font-size: clamp(64px, 12vw, 184px);
+  line-height: 0.85;
   letter-spacing: -0.01em;
   color: #fe80fe;
 }
@@ -324,8 +324,8 @@ button {
   position: absolute;
   bottom: 12vh;
   left: calc(var(--ph) + 5.2*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 7*var(--gap));
-  width: min(calc((4.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 3.5*var(--gap)) * 1.95), 88vh, 960px);
-  height: min(calc((4.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 3.5*var(--gap)) * 1.95), 88vh, 960px);
+  width: min(calc((4.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 3.5*var(--gap)) * 2.1), 94vh, 1020px);
+  height: min(calc((4.5*(100vw - 2*var(--ph) - 11*var(--gap))/12 + 3.5*var(--gap)) * 2.1), 94vh, 1020px);
   z-index: 100;
   pointer-events: none;
 }
@@ -1307,7 +1307,7 @@ button {
   background: #ff88fc;
   z-index: 1; /* behind the <img> art (z-index 2), so bleed renders on top of it */
   left: calc(var(--ph) + 8 * (var(--col) + var(--comic-gap)) + var(--comic-gap));
-  width: calc(3.4 * (var(--col) + var(--comic-gap))); /* narrower than the old 3.75 — bigger right margin */
+  width: calc(3.1 * (var(--col) + var(--comic-gap))); /* narrower still — bigger right margin, left untouched */
   top: var(--sg-top);
   height: calc(12 * var(--sg-row)); /* full secondary-grid height, reaches the bottom margin */
 }
@@ -2875,6 +2875,43 @@ body.art-is-showing #screen-question * { cursor: auto !important; }
   pointer-events: none;
   z-index: 1;
   transition: top 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* One-bubble-per-step progress bar (loading → comic reveal). Replaces the
+   single sliding dot: each step gets its own equally-sized stroked pill,
+   matching the sb-bubble convention (flex:1, no gap, borders touch), with
+   a smaller inner fill mark that grows in as that step completes. Built by
+   playExitAnimation()'s Phase 3b — see sidebar.js. */
+.sb-progress-bubble {
+  flex: 1 1 0px;
+  width: 100%;
+  min-height: 0;
+  border-radius: 9999px;
+  border: 1.5px solid #ffb8d9;
+  box-sizing: border-box;
+  position: relative;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sb-progress-bubble.sb-progress-bubble-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.sb-progress-bubble-fill {
+  position: absolute;
+  inset: 3px; /* just enough to sit inside the stroke, not touching it */
+  border-radius: 9999px;
+  background: #ffb8d9;
+  opacity: 0;
+  transform: scale(0.4);
+  transition: opacity 0.35s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.sb-progress-bubble-fill.sb-progress-bubble-fill-visible {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .sb-bubble {

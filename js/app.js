@@ -1151,8 +1151,15 @@
       qIntroTitle.style.opacity = '1';
 
       if (INTRO_TYPE_A.has(q.id)) {
-        // Sidebar opens 1 second after the question title appears
-        setTimeout(() => {
+        // Sidebar opens 1 second after the question title appears.
+        // Reuses artTimer (the outer timeout has already fired by the time
+        // this runs, so it's free) so _clearIntro()'s clearTimeout(artTimer)
+        // can actually cancel it — previously this was an unassigned bare
+        // setTimeout with no handle, so leaving this question (e.g. via the
+        // home button) before it fired couldn't stop it: it would go on to
+        // force sidebarInteraction.expand(q.id) later regardless, even into
+        // an already-reset sidebar from a brand new session.
+        artTimer = setTimeout(() => {
           sidebarInteraction.expandFromArt();
           sidebarInteraction.expand(q.id);
           // expand() may write bold HTML into titleEl — restore plain intro title
@@ -1312,6 +1319,7 @@
       hint.classList.remove('visible');
       setTimeout(() => {
         hint.style.transition = '';
+        hint.style.opacity    = '';
         hint.classList.add('visible');
       }, 1000);
     }
@@ -1361,8 +1369,16 @@
     const _doSidebarDone = () => { _sidebarReady(); };
 
     if (sidebarVisible) {
+      // Same step-count formula _runPreComicSequence uses for initProgress —
+      // computed early so playExitAnimation can build the final per-step
+      // progress bubbles as soon as the old answer bubbles collapse, instead
+      // of them popping in only once _runPreComicSequence gets around to it.
+      const q3Raw    = State.getAnswer(2);
+      const q3List   = Array.isArray(q3Raw) ? q3Raw : (q3Raw !== null ? [q3Raw] : []);
+      const q3Extras = Math.max(0, q3List.length - 1);
+      const totalSteps = 3 + 8 + q3Extras + 1;
       setTimeout(() => {
-        sidebarInteraction.playExitAnimation(_doSidebarDone, _sidebarReady);
+        sidebarInteraction.playExitAnimation(_doSidebarDone, _sidebarReady, totalSteps);
       }, 1400);
     } else {
       _sidebarReady();

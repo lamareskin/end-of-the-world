@@ -25,14 +25,19 @@ class Q5Interaction {
       },
       {
         name: 'with Nature', type: 'lottie', dataVar: 'NATURE_DATA',
-        // Negative insets intentionally overflow the slot so the full-screen
-        // animation always reaches all 4 edges — fixed -5vw wasn't enough
-        // overflow on wide screens, leaving a gap on the left/right.
-        slotTop: '-5vh', slotBottom: '-5vh', slotLeft: '-9vw', slotRight: '-9vw',
+        slotTop: '-5vh', slotBottom: '-5vh', slotLeft: '-5vw', slotRight: '-5vw',
+        // Widening the slot alone didn't help — Lottie's default
+        // preserveAspectRatio ("meet") letterboxes to fit inside the
+        // container instead of filling it, so a wider box just added
+        // invisible empty space rather than more visible artwork. This
+        // tells the renderer to crop-fill ("slice") instead — see where
+        // it's read in the lottie.loadAnimation() call below.
+        fillSlot: true,
       },
       {
         name: 'with loved ones', type: 'lottie', dataVar: 'LOVED_DATA',
-        slotTop: '-5vh', slotBottom: '-5vh', slotLeft: '-9vw', slotRight: '-9vw',
+        slotTop: '-5vh', slotBottom: '-5vh', slotLeft: '-5vw', slotRight: '-5vw',
+        fillSlot: true,
       },
       {
         name: 'doing something Reckless', type: 'video', src: 'reckless.mp4',
@@ -97,6 +102,9 @@ class Q5Interaction {
           loop:          true,
           autoplay:      false,
           animationData: window[ans.dataVar],
+          rendererSettings: ans.fillSlot
+            ? { preserveAspectRatio: 'xMidYMid slice' }
+            : undefined,
         });
         this._animCache[i] = anim;
       }
